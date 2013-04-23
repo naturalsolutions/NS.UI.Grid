@@ -7,7 +7,7 @@ var NS = window.NS || {};
 NS.UI = (function(ns) {
     "use strict";
 
-    var GridRow = eCollection.views.BaseView.extend({
+    var GridRow = eCollection.utilities.BaseView.extend({
         template: 'gridrow',
 
         initialize: function() {
@@ -22,7 +22,7 @@ NS.UI = (function(ns) {
         }
     });
 
-    var Pager = eCollection.views.BaseView.extend({
+    var Pager = eCollection.utilities.BaseView.extend({
         template: 'pager',
 
         // Config
@@ -95,7 +95,7 @@ NS.UI = (function(ns) {
         }
     });
 
-    ns.Grid = eCollection.views.BaseView.extend({
+    ns.Grid = eCollection.utilities.BaseView.extend({
         template: 'grid',
 
         serialize: function() {
