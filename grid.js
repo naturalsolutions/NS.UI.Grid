@@ -11,6 +11,7 @@ NS.UI = (function(ns) {
         template: 'gridrow',
 
         initialize: function() {
+            eCollection.utilities.BaseView.prototype.initialize.apply(this, arguments);
             this.listenTo(this.model, 'change', this.render);
         },
 
@@ -28,12 +29,21 @@ NS.UI = (function(ns) {
         // Config
         maxIndexButtons: 7, // number of index button to show
 
+        initialize: function(options) {
+            eCollection.utilities.BaseView.prototype.initialize.apply(this, arguments);
+            this.listenTo(this.collection, 'reset', this.render);
+            this.baseUrl = options.baseUrl || '#';
+        },
+
+        buildUrl: function(page) {
+            return this.baseUrl + 'p' + page;
+        },
+
         serialize: function() {
             var c = this.collection;
 
             // Default view data
             var pagerData = {
-                baseUrl: '#sample/list/p',
                 firstPage: 1,
                 lastPage: null,
                 currentPage: null,
@@ -92,14 +102,11 @@ NS.UI = (function(ns) {
             }
 
             return {
+                buildUrl: $.proxy(this.buildUrl, this),
                 // We purposely use chain() here, so that titles.each() can be used in the template code
                 titles: _.chain(this.collection.model.prototype.schema).pluck('title'),
                 pager: pagerData
             };
-        },
-
-        initialize: function() {
-            this.listenTo(this.collection, 'reset', this.render);
         },
 
         beforeRender: function() {
