@@ -22,8 +22,8 @@ NS.UI = (function(ns) {
         }
     });
 
-    var Pager = eCollection.utilities.BaseView.extend({
-        template: 'pager',
+    ns.Grid = eCollection.utilities.BaseView.extend({
+        template: 'grid',
 
         // Config
         maxIndexButtons: 7, // number of index button to show
@@ -32,7 +32,7 @@ NS.UI = (function(ns) {
             var c = this.collection;
 
             // Default view data
-            var viewData = {
+            var pagerData = {
                 baseUrl: '#sample/list/p',
                 firstPage: 1,
                 lastPage: null,
@@ -48,60 +48,53 @@ NS.UI = (function(ns) {
             };
 
 
-            // Read view state
+            // Infere view state form the collection state
             if (c.limit) {
-                if (c.totalCount) { viewData.lastPage = Math.ceil(c.totalCount / c.limit);}
+                if (c.totalCount) { pagerData.lastPage = Math.ceil(c.totalCount / c.limit);}
                 var startIndexPage = Math.floor(c.skip / c.limit);
                 var endIndexPage = Math.floor((c.skip + c.localCount - 1) / c.limit);
                 if (startIndexPage == endIndexPage) {
-                    viewData.currentPage = startIndexPage + 1;
+                    pagerData.currentPage = startIndexPage + 1;
                 } else {
-                    viewData.currentPage = null;
+                    pagerData.currentPage = null;
                 }
             }
 
             // Adapt to the current collection state if it is known
-            if (viewData.currentPage !== null) {
+            if (pagerData.currentPage !== null) {
                 // Decide what to do with arrow buttons
-                if (viewData.currentPage > viewData.firstPage) {
-                    viewData.activeFirst = true;
-                    viewData.activePrevious = true;
+                if (pagerData.currentPage > pagerData.firstPage) {
+                    pagerData.activeFirst = true;
+                    pagerData.activePrevious = true;
                 }
-                if (viewData.lastPage !== null && viewData.currentPage < viewData.lastPage) {
-                    viewData.activeLast = true;
-                    viewData.activeNext = true;
+                if (pagerData.lastPage !== null && pagerData.currentPage < pagerData.lastPage) {
+                    pagerData.activeLast = true;
+                    pagerData.activeNext = true;
                 }
                 // Compute a window for indexes
-                viewData.windowStart = viewData.currentPage - Math.floor(this.maxIndexButtons/2);
-                viewData.windowEnd = viewData.currentPage + Math.floor(this.maxIndexButtons/2) + this.maxIndexButtons % 2 - 1;
-                if (viewData.windowStart < viewData.firstPage) {
-                    viewData.windowEnd += viewData.firstPage - viewData.windowStart;
-                    viewData.windowStart = viewData.firstPage;
+                pagerData.windowStart = pagerData.currentPage - Math.floor(this.maxIndexButtons/2);
+                pagerData.windowEnd = pagerData.currentPage + Math.floor(this.maxIndexButtons/2) + this.maxIndexButtons % 2 - 1;
+                if (pagerData.windowStart < pagerData.firstPage) {
+                    pagerData.windowEnd += pagerData.firstPage - pagerData.windowStart;
+                    pagerData.windowStart = pagerData.firstPage;
                 }
-                if (viewData.windowEnd > viewData.lastPage) {
-                    var offset = viewData.windowEnd - viewData.lastPage;
-                    if (viewData.windowStart > viewData.firstPage + offset) viewData.windowStart -= offset;
-                    viewData.windowEnd = viewData.lastPage;
+                if (pagerData.windowEnd > pagerData.lastPage) {
+                    var offset = pagerData.windowEnd - pagerData.lastPage;
+                    if (pagerData.windowStart > pagerData.firstPage + offset) pagerData.windowStart -= offset;
+                    pagerData.windowEnd = pagerData.lastPage;
                 }
                 // Append/Prepend dots where necessary
-                viewData.showRightDots = viewData.windowEnd < viewData.lastPage;
-                viewData.showLeftDots = viewData.windowStart > viewData.firstPage;
-            } else if (viewData.lastPage !== null) {
+                pagerData.showRightDots = pagerData.windowEnd < pagerData.lastPage;
+                pagerData.showLeftDots = pagerData.windowStart > pagerData.firstPage;
+            } else if (pagerData.lastPage !== null) {
                 // When collection count is known but currentPage can't be computed (not probable)
-                 viewData.windowEnd = (this.maxIndexButtons < viewData.lastPage) ? this.maxIndexButtons : viewData.lastPage;
+                 pagerData.windowEnd = (this.maxIndexButtons < pagerData.lastPage) ? this.maxIndexButtons : pagerData.lastPage;
             }
 
-            return viewData;
-        }
-    });
-
-    ns.Grid = eCollection.utilities.BaseView.extend({
-        template: 'grid',
-
-        serialize: function() {
             return {
                 // We purposely use chain() here, so that titles.each() can be used in the template code
-                titles: _.chain(this.collection.model.prototype.schema).pluck('title')
+                titles: _.chain(this.collection.model.prototype.schema).pluck('title'),
+                pager: pagerData
             };
         },
 
@@ -110,7 +103,6 @@ NS.UI = (function(ns) {
         },
 
         beforeRender: function() {
-            this.insertView(new Pager({collection: this.collection}));
             this.collection.each(function(item) {
                 this.insertView('tbody', new GridRow({model: item}));
             }, this);
