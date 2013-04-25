@@ -26,6 +26,10 @@ NS.UI = (function(ns) {
     ns.Grid = eCollection.utilities.BaseView.extend({
         template: 'grid',
 
+        events: {
+            'click th.sortable': 'onSort'
+        },
+
         // Config
         maxIndexButtons: 7, // number of index button to show
 
@@ -33,10 +37,15 @@ NS.UI = (function(ns) {
             eCollection.utilities.BaseView.prototype.initialize.apply(this, arguments);
             this.listenTo(this.collection, 'reset', this.render);
             this.baseUrl = options.baseUrl || '#';
+            this.sortColumn = options.sortColumn;
+            this.sortOrder = options.sortOrder;
         },
 
-        buildUrl: function(page) {
-            return this.baseUrl + 'p' + page;
+        buildUrl: function(page, sortColumn, sortOrder) {
+            var queryString = '';
+            if (typeof(sortColumn) !== 'undefined')
+                queryString = '/sortColumn=' + sortColumn + '/' + (sortOrder || 'asc');
+            return this.baseUrl + 'p' + page + queryString;
         },
 
         serialize: function() {
@@ -57,7 +66,6 @@ NS.UI = (function(ns) {
                 showRightDots: true
             };
 
-
             // Infere view state form the collection state
             if (c.limit) {
                 if (c.totalCount) { pagerData.lastPage = Math.ceil(c.totalCount / c.limit);}
@@ -69,6 +77,9 @@ NS.UI = (function(ns) {
                     pagerData.currentPage = null;
                 }
             }
+
+            // Keep current page in memory, we'll need it later
+            this.currentPage = pagerData.currentPage;
 
             // Adapt to the current collection state if it is known
             if (pagerData.currentPage !== null) {
@@ -102,9 +113,16 @@ NS.UI = (function(ns) {
             }
 
             return {
-                buildUrl: $.proxy(this.buildUrl, this),
+                buildUrl: $.proxy(function(page) {return this.buildUrl(page, this.sortColumn, this.sortOrder);}, this),
                 // We purposely use chain() here, so that titles.each() can be used in the template code
-                titles: _.chain(this.collection.model.prototype.schema).pluck('title'),
+                headers: _.chain(this.collection.model.prototype.schema).map(function(schema, id) {
+                            return {
+                                id: id,
+                                title: schema.title || '',
+                                sortable: 'sortable' in schema && schema.sortable,
+                                order: (id == this.sortColumn) ? this.sortOrder || 'asc' : ''
+                            };
+                        }, this),
                 pager: pagerData
             };
         },
@@ -113,6 +131,19 @@ NS.UI = (function(ns) {
             this.collection.each(function(item) {
                 this.insertView('tbody', new GridRow({model: item}));
             }, this);
+        },
+        
+        onSort: function(e) {
+            var $elt = $(e.target);
+            var col = $elt.data('id');
+            var currentOrder = $elt.data('order');
+            if (typeof(currentOrder) === 'undefined') {
+                eCollection.router.navigate(this.buildUrl(this.currentPage, col, 'asc'), {trigger: true});
+            } else if (currentOrder == 'asc') {
+                eCollection.router.navigate(this.buildUrl(this.currentPage, col, 'desc'), {trigger: true});
+            } else {
+                eCollection.router.navigate(this.buildUrl(this.currentPage), {trigger: true});
+            }
         }
     });
 
