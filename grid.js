@@ -42,10 +42,12 @@ NS.UI = (function(ns) {
         },
 
         buildUrl: function(page, sortColumn, sortOrder) {
-            var queryString = '';
-            if (typeof(sortColumn) !== 'undefined')
-                queryString = '/sortColumn=' + sortColumn + '/' + (sortOrder || 'asc');
-            return this.baseUrl + 'p' + page + queryString;
+            var options = {page: page};
+            if (typeof(sortColumn) !== 'undefined') {
+                options.sortColumn = sortColumn;
+                options.sortOrder = sortOrder || 'asc';
+            }
+            return this.baseUrl + '?' + $.param(options);
         },
 
         serialize: function() {
