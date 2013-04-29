@@ -41,11 +41,14 @@ NS.UI = (function(ns) {
             this.sortOrder = options.sortOrder;
         },
 
-        buildUrl: function(page, sortColumn, sortOrder) {
-            var options = {page: page};
+        buildUrl: function(params) {
+            params = params || {};
+            var options = {page: params.page || this.currentPage};
+            var sortColumn = params.sortColumn || this.sortColumn;
+            var sortOrder = params.sortOrder || this.sortOrder || 'asc';
             if (typeof(sortColumn) !== 'undefined') {
                 options.sortColumn = sortColumn;
-                options.sortOrder = sortOrder || 'asc';
+                options.sortOrder = sortOrder;
             }
             return this.baseUrl + '?' + $.param(options);
         },
@@ -115,7 +118,7 @@ NS.UI = (function(ns) {
             }
 
             return {
-                buildUrl: $.proxy(function(page) {return this.buildUrl(page, this.sortColumn, this.sortOrder);}, this),
+                buildUrl: $.proxy(function(page) {return this.buildUrl({page: page});}, this),
                 // We purposely use chain() here, so that titles.each() can be used in the template code
                 headers: _.chain(this.collection.model.prototype.schema).map(function(schema, id) {
                             return {
@@ -139,12 +142,14 @@ NS.UI = (function(ns) {
             var $elt = $(e.target);
             var col = $elt.data('id');
             var currentOrder = $elt.data('order');
-            if (typeof(currentOrder) === 'undefined') {
-                eCollection.router.navigate(this.buildUrl(this.currentPage, col, 'asc'), {trigger: true});
-            } else if (currentOrder == 'asc') {
-                eCollection.router.navigate(this.buildUrl(this.currentPage, col, 'desc'), {trigger: true});
-            } else {
-                eCollection.router.navigate(this.buildUrl(this.currentPage), {trigger: true});
+            if (typeof(currentOrder) === 'undefined') { // Not sorted yet, switch to ascending order
+                eCollection.router.navigate(this.buildUrl({sortColumn: col, sortOrder: 'asc'}), {trigger: true});
+            } else if (currentOrder == 'asc') { // Already sorted (asc), switch to descending order
+                eCollection.router.navigate(this.buildUrl({sortColumn: col, sortOrder: 'desc'}), {trigger: true});
+            } else { // Already sorted (desc), swtich back to unsorted
+                this.sortColumn = undefined;
+                this.sortOrder = undefined;
+                eCollection.router.navigate(this.buildUrl(), {trigger: true});
             }
         }
     });
