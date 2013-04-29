@@ -27,11 +27,13 @@ NS.UI = (function(ns) {
         template: 'grid',
 
         events: {
-            'click th.sortable': 'onSort'
+            'click th.sortable': 'onSort',
+            'change .grid-page-selector select': 'onPageRedim'
         },
 
         // Config
         maxIndexButtons: 7, // number of index button to show
+        pageSizes: [10, 15, 25, 50],
 
         initialize: function(options) {
             eCollection.utilities.BaseView.prototype.initialize.apply(this, arguments);
@@ -43,7 +45,10 @@ NS.UI = (function(ns) {
 
         buildUrl: function(params) {
             params = params || {};
-            var options = {page: params.page || this.currentPage};
+            var options = {
+                page: params.page || this.currentPage,
+                pageSize: params.pageSize || this.pageSize
+            };
             var sortColumn = params.sortColumn || this.sortColumn;
             var sortOrder = params.sortOrder || this.sortOrder || 'asc';
             if (typeof(sortColumn) !== 'undefined') {
@@ -55,6 +60,7 @@ NS.UI = (function(ns) {
 
         serialize: function() {
             var c = this.collection;
+            var pageSize;
 
             // Default view data
             var pagerData = {
@@ -72,19 +78,24 @@ NS.UI = (function(ns) {
             };
 
             // Infere view state form the collection state
-            if (c.limit) {
-                if (c.totalCount) { pagerData.lastPage = Math.ceil(c.totalCount / c.limit);}
-                var startIndexPage = Math.floor(c.skip / c.limit);
-                var endIndexPage = Math.floor((c.skip + c.localCount - 1) / c.limit);
-                if (startIndexPage == endIndexPage) {
-                    pagerData.currentPage = startIndexPage + 1;
-                } else {
-                    pagerData.currentPage = null;
-                }
+            if (c.limit && _.contains(this.pageSizes, c.limit)) {
+                pageSize = c.limit;
+            } else {
+                throw new Error('Grid page size is invalid or unknown.');
+            }
+
+            if (c.totalCount) { pagerData.lastPage = Math.ceil(c.totalCount / pageSize);}
+            var startIndexPage = Math.floor(c.skip / pageSize);
+            var endIndexPage = Math.floor((c.skip + c.localCount - 1) / pageSize);
+            if (startIndexPage == endIndexPage) {
+                pagerData.currentPage = startIndexPage + 1;
+            } else {
+                pagerData.currentPage = null;
             }
 
             // Keep current page in memory, we'll need it later
             this.currentPage = pagerData.currentPage;
+            this.pageSize = pageSize;
 
             // Adapt to the current collection state if it is known
             if (pagerData.currentPage !== null) {
@@ -119,6 +130,9 @@ NS.UI = (function(ns) {
 
             return {
                 buildUrl: $.proxy(function(page) {return this.buildUrl({page: page});}, this),
+                id: 'grid-' + this.collection.id,
+                pageSizes: this.pageSizes,
+                pageSize: pageSize,
                 // We purposely use chain() here, so that titles.each() can be used in the template code
                 headers: _.chain(this.collection.model.prototype.schema).map(function(schema, id) {
                             return {
@@ -136,6 +150,10 @@ NS.UI = (function(ns) {
             this.collection.each(function(item) {
                 this.insertView('tbody', new GridRow({model: item}));
             }, this);
+        },
+
+        onPageRedim: function(e) {
+            eCollection.router.navigate(this.buildUrl({pageSize: $(e.target).val()}), {trigger: true});
         },
         
         onSort: function(e) {
