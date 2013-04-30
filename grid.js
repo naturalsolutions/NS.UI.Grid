@@ -28,7 +28,8 @@ NS.UI = (function(ns) {
 
         events: {
             'click th.sortable': 'onSort',
-            'change .grid-page-selector select': 'onPageRedim'
+            'change .grid-page-selector select': 'onPageRedim',
+            'change .grid-filter select': 'onFilter'
         },
 
         // Config
@@ -41,13 +42,17 @@ NS.UI = (function(ns) {
             this.baseUrl = options.baseUrl || '#';
             this.sortColumn = options.sortColumn;
             this.sortOrder = options.sortOrder;
+            this.filterOptions = options.filterOptions || [];
+            if (this.filterOptions.length > 0)
+                this.filterOptions.unshift({value: '', label: '--'});
+            this.currentFilter = options.currentFilter || '';
         },
 
         buildUrl: function(params) {
             params = params || {};
             var options = {
                 page: params.page || this.currentPage,
-                pageSize: params.pageSize || this.pageSize
+                pageSize: params.pageSize || this.pageSize,
             };
             var sortColumn = params.sortColumn || this.sortColumn;
             var sortOrder = params.sortOrder || this.sortOrder || 'asc';
@@ -55,6 +60,8 @@ NS.UI = (function(ns) {
                 options.sortColumn = sortColumn;
                 options.sortOrder = sortOrder;
             }
+            var currentFilter = ('filter' in params) ? params.filter : this.currentFilter;
+            if (currentFilter != '') options.filter = currentFilter;
             return this.baseUrl + '?' + $.param(options);
         },
 
@@ -133,6 +140,8 @@ NS.UI = (function(ns) {
                 id: 'grid-' + this.collection.id,
                 pageSizes: this.pageSizes,
                 pageSize: pageSize,
+                filterOptions: this.filterOptions,
+                currentFilter: this.currentFilter,
                 // We purposely use chain() here, so that titles.each() can be used in the template code
                 headers: _.chain(this.collection.model.prototype.schema).map(function(schema, id) {
                             return {
@@ -156,6 +165,10 @@ NS.UI = (function(ns) {
             eCollection.router.navigate(this.buildUrl({pageSize: $(e.target).val()}), {trigger: true});
         },
         
+        onFilter: function(e) {
+            eCollection.router.navigate(this.buildUrl({filter: $(e.target).val()}), {trigger: true});
+        },
+
         onSort: function(e) {
             var $elt = $(e.target);
             var col = $elt.data('id');
