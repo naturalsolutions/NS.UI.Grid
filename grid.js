@@ -141,7 +141,7 @@ NS.UI = (function(ns) {
                 filterOptions: this.filterOptions,
                 currentFilter: this.currentFilter,
                 // We purposely use chain() here, so that titles.each() can be used in the template code
-                headers: _.chain(this.collection.model.prototype.schema).map(function(schema, id) {
+                headers: _.chain(this.collection.model.schema).map(function(schema, id) {
                             return {
                                 id: id,
                                 title: schema.title || '',
