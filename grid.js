@@ -43,8 +43,6 @@ NS.UI = (function(ns) {
             this.sortColumn = options.sortColumn;
             this.sortOrder = options.sortOrder;
             this.filterOptions = options.filterOptions || [];
-            if (this.filterOptions.length > 0)
-                this.filterOptions.unshift({value: '', label: '--'});
             this.currentFilter = options.currentFilter || '';
         },
 
