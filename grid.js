@@ -17,7 +17,7 @@ NS.UI = (function(ns) {
 
         serialize: function() {
             var viewData = {};
-            viewData.attr = this.model.attributes;
+            viewData.attr = this.model.getFlatAttrs();
             viewData.actions = _.extend({}, this.model.getLocalURLs());
             return viewData;
         }
@@ -61,6 +61,69 @@ NS.UI = (function(ns) {
             var currentFilter = ('filter' in params) ? params.filter : this.currentFilter;
             if (currentFilter != '') options.filter = currentFilter;
             return this.baseUrl + '?' + $.param(options);
+        },
+
+        _getSubHeaders: function(schema, prefix) {
+            var context = {
+                grid: this,
+                prefix: prefix,
+                subDepth: 0
+            }, sub = {
+                headers: _.map(schema, function(field, id) {
+                    var header = {
+                        id: this.prefix + id,
+                        title: field.title || id,
+                        sortable: 'sortable' in field && field.sortable,
+                        order: (id == this.grid.sortColumn) ? this.grid.sortOrder || 'asc' : '',
+                        sub: {depth: 0, headers: []}
+                    };
+                    switch (field.type) {
+                        case 'NestedModel':
+                        case 'List':
+                            header.sub = this.grid._getSubHeaders(field.model.schema, this.prefix + id + '.');
+                            break;
+                        case 'MultiSchema':
+                            var selected = this.grid.collection.first().get(field.selector);
+                            var schemas = _.result(field, 'schemas');
+                            header.sub = this.grid._getSubHeaders(schemas[selected.id], this.prefix + id + '.');
+                            break;
+                    }
+                    if (header.sub.depth > this.subDepth) {this.subDepth = header.sub.depth;}
+                    return header;
+                }, context)
+            };
+            sub.depth = context.subDepth + 1;
+            return sub;
+        },
+
+        getHeaderIterator: function() {
+            return _.bind(
+                /*
+                 * Breadth-first tree traversal algorithm
+                 * adapted to insert a step between each row
+                 */
+                function (cbBeforeRow, cbCell, cbAfterRow) {
+                    var queue = [],
+                        cell, row;
+                    // initialize queue with a copy of headers
+                    _.each(this.headers, function(h) {queue.push(h);});
+                    // Iterate over row queue
+                    while (queue.length > 0) {
+                        row = queue, queue = [];
+                        cbBeforeRow(this.depth);
+                        while (cell = row.shift()) {
+                            // Enqueue sub-headers if any
+                            _.each(cell.sub.headers, function(h) {queue.push(h);});
+                            // Process the header cell
+                            cbCell(cell, this.depth);
+                        }
+                        cbAfterRow(this.depth);
+                        this.depth--;
+                    }
+                },
+                // Bind the tree traversal algorithm to the actual header tree
+                this._getSubHeaders(this.collection.model.schema, '')
+            );
         },
 
         serialize: function() {
@@ -140,15 +203,7 @@ NS.UI = (function(ns) {
                 pageSize: pageSize,
                 filterOptions: this.filterOptions,
                 currentFilter: this.currentFilter,
-                // We purposely use chain() here, so that titles.each() can be used in the template code
-                headers: _.chain(this.collection.model.schema).map(function(schema, id) {
-                            return {
-                                id: id,
-                                title: schema.title || '',
-                                sortable: 'sortable' in schema && schema.sortable,
-                                order: (id == this.sortColumn) ? this.sortOrder || 'asc' : ''
-                            };
-                        }, this),
+                headerIterator: this.getHeaderIterator(),
                 pager: pagerData
             };
         },
