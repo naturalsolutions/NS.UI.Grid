@@ -83,9 +83,14 @@ NS.UI = (function(ns) {
                             header.sub = this.grid._getSubHeaders(field.model.schema, this.prefix + id + '.');
                             break;
                         case 'MultiSchema':
-                            var selected = this.grid.collection.first().get(field.selector);
                             var schemas = _.result(field, 'schemas');
-                            header.sub = this.grid._getSubHeaders(schemas[selected.id], this.prefix + id + '.');
+                            var selected = this.grid.currentFilter;
+                            if (selected === '' && this.grid.filterOptions.length > 0) {
+                                selected = this.grid.filterOptions[0].id;
+                            }
+                            if (selected !== '') {
+                                header.sub = this.grid._getSubHeaders(schemas[selected], this.prefix + id + '.');
+                            }
                             break;
                     }
                     if (header.sub.depth > this.subDepth) {this.subDepth = header.sub.depth;}
