@@ -204,6 +204,7 @@ NS.UI = (function(ns) {
             return {
                 buildUrl: $.proxy(function(page) {return this.buildUrl({page: page});}, this),
                 id: 'grid-' + this.collection.id,
+                verboseName: 'List of ' + this.collection.model.verboseName.toLowerCase(),
                 pageSizes: this.pageSizes,
                 pageSize: pageSize,
                 filterOptions: this.filterOptions,
