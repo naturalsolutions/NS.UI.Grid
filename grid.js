@@ -50,7 +50,7 @@ NS.UI = (function(ns) {
             params = params || {};
             var options = {
                 page: params.page || this.currentPage,
-                pageSize: params.pageSize || this.pageSize,
+                pageSize: params.pageSize || this.pageSize
             };
             var sortColumn = params.sortColumn || this.sortColumn;
             var sortOrder = params.sortOrder || this.sortOrder || 'asc';
