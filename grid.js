@@ -69,35 +69,40 @@ NS.UI = (function(ns) {
                 prefix: prefix,
                 subDepth: 0
             }, sub = {
-                headers: _.map(schema, function(field, id) {
-                    var header = {
-                        id: this.prefix + id,
-                        title: field.title || id,
-                        sortable: 'sortable' in field && field.sortable,
-                        order: (id == this.grid.sortColumn) ? this.grid.sortOrder || 'asc' : '',
-                        sub: {depth: 0, headers: []}
-                    };
-                    switch (field.type) {
-                        case 'NestedModel':
-                        case 'List':
-                            header.sub = this.grid._getSubHeaders(field.model.schema, this.prefix + id + '.');
-                            break;
-                        case 'MultiSchema':
-                            var schemas = _.result(field, 'schemas');
-                            var selected = this.grid.currentFilter;
-                            if (selected === '' && this.grid.filterOptions.length > 0) {
-                                selected = this.grid.filterOptions[0].id;
-                            }
-                            if (selected !== '') {
-                                header.sub = this.grid._getSubHeaders(schemas[selected], this.prefix + id + '.');
-                            }
-                            break;
-                    }
-                    if (header.sub.depth > this.subDepth) {this.subDepth = header.sub.depth;}
-                    return header;
-                }, context)
+                headers: []
             };
+
+            _.each(schema, function(field, id) {
+                if (('main' in field) && !field.main) return ;
+                var header = {
+                    id: this.prefix + id,
+                    title: field.title || id,
+                    sortable: 'sortable' in field && field.sortable,
+                    order: (id == this.grid.sortColumn) ? this.grid.sortOrder || 'asc' : '',
+                    sub: {depth: 0, headers: []}
+                };
+                switch (field.type) {
+                    case 'NestedModel':
+                    case 'List':
+                        header.sub = this.grid._getSubHeaders(field.model.schema, this.prefix + id + '.');
+                        break;
+                    case 'MultiSchema':
+                        var schemas = _.result(field, 'schemas');
+                        var selected = this.grid.currentFilter;
+                        if (selected === '' && this.grid.filterOptions.length > 0) {
+                            selected = this.grid.filterOptions[0].id;
+                        }
+                        if (selected !== '') {
+                            header.sub = this.grid._getSubHeaders(schemas[selected], this.prefix + id + '.');
+                        }
+                        break;
+                }
+                if (header.sub.depth > this.subDepth) {this.subDepth = header.sub.depth;}
+                sub.headers.push(header);
+            }, context);
+
             sub.depth = context.subDepth + 1;
+
             return sub;
         },
 
