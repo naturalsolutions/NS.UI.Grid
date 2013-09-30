@@ -157,6 +157,7 @@ NS.UI = (function(ns) {
                 firstPage: 1,
                 lastPage: null,
                 currentPage: null,
+                totalCount: c.totalCount,
                 windowStart: 1,
                 windowEnd: this.maxIndexButtons,
                 activeFirst: false,
