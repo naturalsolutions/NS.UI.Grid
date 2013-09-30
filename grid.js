@@ -10,16 +10,28 @@ NS.UI = (function(ns) {
     var GridRow = eCollection.utilities.BaseView.extend({
         template: 'gridrow',
 
+        events: {
+            'click': 'onClick'
+        },
+
         initialize: function() {
             eCollection.utilities.BaseView.prototype.initialize.apply(this, arguments);
+            this.actions = _.extend({}, this.model.getLocalURLs());
             this.listenTo(this.model, 'change', this.render);
         },
 
         serialize: function() {
             var viewData = {};
             viewData.attr = this.model.getFlatAttrs();
-            viewData.actions = _.extend({}, this.model.getLocalURLs());
+            viewData.actions = this.actions;
             return viewData;
+        },
+
+        onClick: function(e) {
+            if (!('href' in e.target)) { // Do not simulate anchor if an anchor is clicked
+                e.preventDefault();
+                eCollection.router.navigate(this.actions.view, {trigger: true});
+            }
         }
     });
 
