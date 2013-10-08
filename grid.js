@@ -90,7 +90,7 @@ NS.UI = (function(ns) {
                     id: this.prefix + id,
                     title: field.title || id,
                     sortable: 'sortable' in field && field.sortable,
-                    order: (id == this.grid.sortColumn) ? this.grid.sortOrder || 'asc' : '',
+                    order: (this.prefix + id == this.grid.sortColumn) ? this.grid.sortOrder || 'asc' : '',
                     sub: {depth: 0, headers: []}
                 };
                 switch (field.type) {
