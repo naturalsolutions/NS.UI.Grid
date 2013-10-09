@@ -39,7 +39,7 @@ NS.UI = (function(ns) {
         template: 'grid',
 
         events: {
-            'click th.sortable': 'onSort',
+            'click .sort-action': 'onSort',
             'change .grid-page-selector select': 'onPageRedim',
             'change .grid-filter select': 'onFilter'
         },
@@ -250,14 +250,14 @@ NS.UI = (function(ns) {
             var $elt = $(e.target);
             var col = $elt.data('id');
             var currentOrder = $elt.data('order');
-            if (typeof(currentOrder) === 'undefined') { // Not sorted yet, switch to ascending order
-                eCollection.router.navigate(this.buildUrl({sortColumn: col, sortOrder: 'asc'}), {trigger: true});
-            } else if (currentOrder == 'asc') { // Already sorted (asc), switch to descending order
+            if (currentOrder == 'asc') { // Already sorted (asc), switch to descending order
                 eCollection.router.navigate(this.buildUrl({sortColumn: col, sortOrder: 'desc'}), {trigger: true});
-            } else { // Already sorted (desc), swtich back to unsorted
-                this.sortColumn = undefined;
+            } else if (currentOrder == 'desc') { // Already sorted (desc), swtich back to unsorted
+                this.sortColumn = undefined; // FIXME: this should be a no-op! refactoring needed
                 this.sortOrder = undefined;
                 eCollection.router.navigate(this.buildUrl(), {trigger: true});
+            } else { // Not sorted yet, switch to ascending order
+                eCollection.router.navigate(this.buildUrl({sortColumn: col, sortOrder: 'asc'}), {trigger: true});
             }
         }
     });
