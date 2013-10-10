@@ -40,6 +40,7 @@ NS.UI = (function(ns) {
 
         events: {
             'click .sort-action': 'onSort',
+            'click .filter-action': 'toggleFilter',
             'change .grid-page-selector select': 'onPageRedim',
             'change .grid-filter select': 'onFilter'
         },
@@ -91,6 +92,7 @@ NS.UI = (function(ns) {
                     title: field.title || id,
                     sortable: 'sortable' in field && field.sortable,
                     order: (this.prefix + id == this.grid.sortColumn) ? this.grid.sortOrder || 'asc' : '',
+                    filterable: _.contains(['Number', 'Text', 'Date', 'CheckBox', 'Select'], field.type),
                     sub: {depth: 0, headers: []}
                 };
                 switch (field.type) {
@@ -241,9 +243,19 @@ NS.UI = (function(ns) {
         onPageRedim: function(e) {
             eCollection.router.navigate(this.buildUrl({pageSize: $(e.target).val()}), {trigger: true});
         },
-        
+
         onFilter: function(e) {
             eCollection.router.navigate(this.buildUrl({filter: $(e.target).val()}), {trigger: true});
+        },
+
+        toggleFilter: function(e) {
+            var form = $(e.target).siblings('.filter-form'),
+                isHidden = form.is(':hidden');
+            $('.grid .filter-form').hide(); // Close all open forms (on this column or on other columns)
+            if (isHidden) {
+                form.show();
+                form.find('input').first().focus();
+            }
         },
 
         onSort: function(e) {
