@@ -41,6 +41,8 @@ NS.UI = (function(ns) {
         events: {
             'click .sort-action': 'onSort',
             'click .filter-action': 'toggleFilter',
+            'submit .filter-form form': 'addFilter',
+            'reset .filter-form form': 'clearFilter',
             'change .grid-page-selector select': 'onPageRedim',
             'change .grid-filter select': 'onFilter'
         },
@@ -57,6 +59,14 @@ NS.UI = (function(ns) {
             this.sortOrder = options.sortOrder;
             this.filterOptions = options.filterOptions || [];
             this.currentFilter = options.currentFilter || '';
+            this.filters = {};
+            if (_.isArray(options.filters)) {
+                var parts;
+                for (var i=0; i<options.filters.length; i++) {
+                    parts = options.filters[i].split(':');
+                    this.filters[parts[0]] = parts[1];
+                }
+            }
         },
 
         buildUrl: function(params) {
@@ -73,6 +83,8 @@ NS.UI = (function(ns) {
             }
             var currentFilter = ('filter' in params) ? params.filter : this.currentFilter;
             if (currentFilter != '') options.filter = currentFilter;
+            options.filters = [];
+            _.each(this.filters, function(v, k) {options.filters.push(k + ':' + v);});
             return this.baseUrl + '?' + $.param(options);
         },
 
@@ -92,7 +104,6 @@ NS.UI = (function(ns) {
                     title: field.title || id,
                     sortable: 'sortable' in field && field.sortable,
                     order: (this.prefix + id == this.grid.sortColumn) ? this.grid.sortOrder || 'asc' : '',
-                    filterable: _.contains(['Number', 'Text', 'Date', 'CheckBox', 'Select'], field.type),
                     sub: {depth: 0, headers: []}
                 };
                 switch (field.type) {
@@ -109,6 +120,9 @@ NS.UI = (function(ns) {
                         if (selected !== '') {
                             header.sub = this.grid._getSubHeaders(schemas[selected], this.prefix + id + '.');
                         }
+                        break;
+                    case 'Text':
+                        header.filter = {type: 'text', val: this.grid.filters[this.prefix + id]};
                         break;
                 }
                 if (header.sub.depth > this.subDepth) {this.subDepth = header.sub.depth;}
@@ -246,6 +260,33 @@ NS.UI = (function(ns) {
 
         onFilter: function(e) {
             eCollection.router.navigate(this.buildUrl({filter: $(e.target).val()}), {trigger: true});
+        },
+
+        clearFilter: function(e) {
+            e.preventDefault();
+            var $form = $(e.target),
+                key = $form.data('id');
+            delete this.filters[key];
+            eCollection.router.navigate(this.buildUrl(), {trigger: true});
+            $form.parents('.filter-form').hide();
+        },
+
+        addFilter: function(e) {
+            e.preventDefault();
+            var $form = $(e.target),
+                key = $form.data('id');
+            switch ($form.data('type')) {
+                case 'text':
+                    var val = $form.find('[name="val"]').val();
+                    val = $.trim(val);
+                    if (val == '')
+                        delete this.filters[key];
+                    else
+                        this.filters[key] = val;
+                    break;
+            }
+            eCollection.router.navigate(this.buildUrl(), {trigger: true});
+            $form.parents('.filter-form').hide();
         },
 
         toggleFilter: function(e) {
