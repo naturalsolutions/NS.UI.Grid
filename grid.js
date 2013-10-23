@@ -122,7 +122,8 @@ NS.UI = (function(ns) {
                         }
                         break;
                     case 'Text':
-                        header.filter = {type: 'text', val: this.grid.filters[this.prefix + id]};
+                    case 'Boolean':
+                        header.filter = {type: field.type, val: this.grid.filters[this.prefix + id]};
                         break;
                 }
                 if (header.sub.depth > this.subDepth) {this.subDepth = header.sub.depth;}
@@ -276,15 +277,18 @@ NS.UI = (function(ns) {
             var $form = $(e.target),
                 key = $form.data('id');
             switch ($form.data('type')) {
-                case 'text':
+                case 'Text':
                     var val = $form.find('[name="val"]').val();
                     val = $.trim(val);
-                    if (val == '')
-                        delete this.filters[key];
-                    else
-                        this.filters[key] = val;
+                    break;
+                case 'Boolean':
+                    var val = $form.find('[name="val"]:checked').val() || '';
                     break;
             }
+            if (val == '')
+                delete this.filters[key];
+            else
+                this.filters[key] = val;
             eCollection.router.navigate(this.buildUrl(), {trigger: true});
             $form.parents('.filter-form').hide();
         },
