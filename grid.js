@@ -42,6 +42,7 @@ NS.UI = (function(ns) {
             'click .sort-action': 'onSort',
             'click .filter-action': 'toggleFilter',
             'submit .filter-form form': 'addFilter',
+            'input .filter-form input[type="number"]': 'onNumberInput',
             'reset .filter-form form': 'clearFilter',
             'change .grid-page-selector select': 'onPageRedim',
             'change .grid-filter select': 'onFilter'
@@ -67,6 +68,7 @@ NS.UI = (function(ns) {
                     this.filters[parts[0]] = parts[1];
                 }
             }
+            this._numberRegexp = new RegExp('^([0-9]+|[0-9]*[\.,][0-9]+)$');
         },
 
         buildUrl: function(params) {
@@ -123,6 +125,7 @@ NS.UI = (function(ns) {
                         break;
                     case 'Text':
                     case 'Boolean':
+                    case 'Number':
                         header.filter = {type: field.type, val: this.grid.filters[this.prefix + id]};
                         break;
                 }
@@ -259,15 +262,21 @@ NS.UI = (function(ns) {
             eCollection.router.navigate(this.buildUrl({pageSize: $(e.target).val()}), {trigger: true});
         },
 
+        onNumberInput: function(e) {
+            var $input = $(e.target),
+                val = $input.val();
+            $input.toggleClass('error', val != '' && !this._numberRegexp.test(val));
+        },
+
         onFilter: function(e) {
             eCollection.router.navigate(this.buildUrl({filter: $(e.target).val()}), {trigger: true});
         },
 
         clearFilter: function(e) {
-            e.preventDefault();
             var $form = $(e.target),
                 key = $form.data('id');
             delete this.filters[key];
+            $form.find('.error').removeClass('error');
             eCollection.router.navigate(this.buildUrl(), {trigger: true});
             $form.parents('.filter-form').hide();
         },
@@ -280,6 +289,14 @@ NS.UI = (function(ns) {
                 case 'Text':
                     var val = $form.find('[name="val"]').val();
                     val = $.trim(val);
+                    break;
+                case 'Number':
+                    var val = $form.find('[name="val"]').val();
+                    val = $.trim(val);
+                    if (this._numberRegexp.test(val))
+                        val = val.replace(/,/, '.');
+                    else
+                        val = '';
                     break;
                 case 'Boolean':
                     var val = $form.find('[name="val"]:checked').val() || '';
