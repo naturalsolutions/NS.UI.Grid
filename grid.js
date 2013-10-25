@@ -353,12 +353,17 @@ NS.UI = (function(ns) {
                     var val = $form.find('[name="val"]:checked').val() || '';
                     break;
             }
-            if (val == '')
+            if (val == '' && key in this.filters) {
                 delete this.filters[key];
-            else
+                this.currentPage = 1; // Page count will change, currentPage will be meaning-less
+                eCollection.router.navigate(this.buildUrl(), {trigger: true});
+            } else if (val != '') {
                 this.filters[key] = val;
-            eCollection.router.navigate(this.buildUrl(), {trigger: true});
-            $form.parents('.filter-form').hide();
+                this.currentPage = 1; // Page count will change, currentPage will be meaning-less
+                eCollection.router.navigate(this.buildUrl(), {trigger: true});
+            } else {
+                $form.parents('.filter-form').hide();
+            }
         },
 
         toggleFilter: function(e) {
