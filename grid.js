@@ -62,10 +62,12 @@ NS.UI = (function(ns) {
             this.currentFilter = options.currentFilter || '';
             this.filters = {};
             if (_.isArray(options.filters)) {
-                var parts;
+                var key, val;
                 for (var i=0; i<options.filters.length; i++) {
-                    parts = options.filters[i].split(':');
-                    this.filters[parts[0]] = parts[1];
+                    // /!\ beware of .split(':', 2), it will forget every char after a second ':' if any
+                    key = options.filters[i].split(':', 1)[0]; // Safe, .split() will return [""] at least
+                    val = options.filters[i].slice(key.length + 1); // Safe, s.slice(n) accepts n > s.length and return ""
+                    this.filters[key] = val;
                 }
             }
             this._numberRegexp = new RegExp('^([0-9]+|[0-9]*[\.,][0-9]+)$');
