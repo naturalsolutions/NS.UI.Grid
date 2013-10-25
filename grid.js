@@ -381,13 +381,11 @@ NS.UI = (function(ns) {
             var col = $elt.data('id');
             var currentOrder = $elt.data('order');
             if (currentOrder == 'asc') { // Already sorted (asc), switch to descending order
-                eCollection.router.navigate(this.buildUrl({sortColumn: col, sortOrder: 'desc'}), {trigger: true});
+                this.trigger('sort', col, 'desc');
             } else if (currentOrder == 'desc') { // Already sorted (desc), swtich back to unsorted
-                this.sortColumn = undefined; // FIXME: this should be a no-op! refactoring needed
-                this.sortOrder = undefined;
-                eCollection.router.navigate(this.buildUrl(), {trigger: true});
+                this.trigger('unsort');
             } else { // Not sorted yet, switch to ascending order
-                eCollection.router.navigate(this.buildUrl({sortColumn: col, sortOrder: 'asc'}), {trigger: true});
+                this.trigger('sort', col, 'asc');
             }
         }
     });
