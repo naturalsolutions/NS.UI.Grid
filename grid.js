@@ -35,6 +35,7 @@ NS.UI = (function(ns) {
         template: 'grid',
 
         events: {
+            'click .pagination [data-target]': 'onPage',
             'click .sort-action': 'onSort',
             'click .filter-action': 'toggleFilter',
             'submit .filter-form form': 'addFilter',
@@ -238,7 +239,6 @@ NS.UI = (function(ns) {
             }
 
             return {
-                buildUrl: $.proxy(function(page) {return this.buildUrl({page: page});}, this),
                 id: 'grid-' + this.collection.id,
                 verboseName: 'List of ' + this.collection.model.verboseName.toLowerCase(),
                 pageSizes: this.pageSizes,
@@ -282,6 +282,13 @@ NS.UI = (function(ns) {
 
         onPageRedim: function(e) {
             eCollection.router.navigate(this.buildUrl({pageSize: $(e.target).val()}), {trigger: true});
+        },
+
+        onPage: function(e) {
+            var $pageButton = $(e.target),
+                target = parseInt($pageButton.data('target'));
+            if (! isNaN(target))
+                this.trigger('page', target);
         },
 
         onNumberInput: function(e) {
