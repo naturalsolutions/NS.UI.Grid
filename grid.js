@@ -70,6 +70,7 @@ NS.UI = (function(ns) {
                     this.filters[key] = val;
                 }
             }
+            this.disableFilters = options.disableFilters || false;
             this._numberRegexp = new RegExp('^([0-9]+|[0-9]*[\.,][0-9]+)$');
         },
 
@@ -128,12 +129,15 @@ NS.UI = (function(ns) {
                     case 'Text':
                     case 'Boolean':
                     case 'Number':
-                        header.filter = {type: field.type, val: this.grid.filters[this.prefix + id]};
+                        if (!this.grid.disableFilters)
+                            header.filter = {type: field.type, val: this.grid.filters[this.prefix + id]};
                         break;
                     case 'Date':
-                        var d = new Date(this.grid.filters[this.prefix + id]),
-                            val = (isFinite(d)) ? d.getDate() + '/' + (d.getMonth()+1)  + '/' + d.getFullYear() : undefined;
-                        header.filter = {type: field.type, val: val};
+                        if (!this.grid.disableFilters) {
+                            var d = new Date(this.grid.filters[this.prefix + id]),
+                                val = (isFinite(d)) ? d.getDate() + '/' + (d.getMonth()+1)  + '/' + d.getFullYear() : undefined;
+                            header.filter = {type: field.type, val: val};
+                        }
                         break;
                 }
                 if (header.sub.depth > this.subDepth) {this.subDepth = header.sub.depth;}
