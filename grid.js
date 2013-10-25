@@ -56,16 +56,7 @@ NS.UI = (function(ns) {
             this.sortOrder = options.sortOrder;
             this.filterOptions = options.filterOptions || [];
             this.currentFilter = options.currentFilter || '';
-            this.filters = {};
-            if (_.isArray(options.filters)) {
-                var key, val;
-                for (var i=0; i<options.filters.length; i++) {
-                    // /!\ beware of .split(':', 2), it will forget every char after a second ':' if any
-                    key = options.filters[i].split(':', 1)[0]; // Safe, .split() will return [""] at least
-                    val = options.filters[i].slice(key.length + 1); // Safe, s.slice(n) accepts n > s.length and return ""
-                    this.filters[key] = val;
-                }
-            }
+            this.filters = options.filters || {};
             this.disableFilters = options.disableFilters || false;
             this._numberRegexp = new RegExp('^([0-9]+|[0-9]*[\.,][0-9]+)$');
         },
@@ -304,11 +295,9 @@ NS.UI = (function(ns) {
         },
 
         clearFilter: function(e) {
-            var $form = $(e.target),
-                key = $form.data('id');
-            delete this.filters[key];
+            var $form = $(e.target);
+            this.trigger('unfilter', $form.data('id'));
             $form.find('.error').removeClass('error');
-            eCollection.router.navigate(this.buildUrl(), {trigger: true});
             $form.parents('.filter-form').hide();
         },
 
@@ -354,13 +343,9 @@ NS.UI = (function(ns) {
                     break;
             }
             if (val == '' && key in this.filters) {
-                delete this.filters[key];
-                this.currentPage = 1; // Page count will change, currentPage will be meaning-less
-                eCollection.router.navigate(this.buildUrl(), {trigger: true});
+                this.trigger('unfilter', key);
             } else if (val != '') {
-                this.filters[key] = val;
-                this.currentPage = 1; // Page count will change, currentPage will be meaning-less
-                eCollection.router.navigate(this.buildUrl(), {trigger: true});
+                this.trigger('filter', key, val);
             } else {
                 $form.parents('.filter-form').hide();
             }
