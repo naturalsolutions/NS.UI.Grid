@@ -285,7 +285,7 @@ NS.UI = (function(ns) {
                     }
                 });
             $el.on('input', function(e) {$(this).datepicker('hide');});
-            $el.on('blur', function(e) {$(this).datepicker('hide');});
+            $el.on('keydown', function(e) {if (e.keyCode == 27 || e.keyCode == 9) $(this).datepicker('hide');});
             if (val) $el.datepicker('setValue', val);
         },
 
