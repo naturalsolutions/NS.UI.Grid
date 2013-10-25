@@ -16,22 +16,18 @@ NS.UI = (function(ns) {
 
         initialize: function() {
             eCollection.utilities.BaseView.prototype.initialize.apply(this, arguments);
-            this.actions = _.extend({}, this.model.getLocalURLs());
             this.listenTo(this.model, 'change', this.render);
         },
 
         serialize: function() {
             var viewData = {};
             viewData.attr = this.model.getFlatAttrs();
-            viewData.actions = this.actions;
             return viewData;
         },
 
         onClick: function(e) {
-            if (!('href' in e.target)) { // Do not simulate anchor if an anchor is clicked
-                e.preventDefault();
-                eCollection.router.navigate(this.actions.view, {trigger: true});
-            }
+            e.preventDefault(); // FIXME: What if the grid row holds button or anchors? or the user want to add click handler on some part of the row?
+            this.trigger('selected', this.model);
         }
     });
 
