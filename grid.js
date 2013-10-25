@@ -130,6 +130,11 @@ NS.UI = (function(ns) {
                     case 'Number':
                         header.filter = {type: field.type, val: this.grid.filters[this.prefix + id]};
                         break;
+                    case 'Date':
+                        var d = new Date(this.grid.filters[this.prefix + id]),
+                            val = (isFinite(d)) ? d.getDate() + '/' + (d.getMonth()+1)  + '/' + d.getFullYear() : undefined;
+                        header.filter = {type: field.type, val: val};
+                        break;
                 }
                 if (header.sub.depth > this.subDepth) {this.subDepth = header.sub.depth;}
                 sub.headers.push(header);
@@ -260,6 +265,30 @@ NS.UI = (function(ns) {
             }, this);
         },
 
+        afterRender: function() {
+            // Allow user to define a datepicker widget
+            this.$el.find('th input[type="date"]').each($.proxy(function(idx, elt) {
+                this.addDatePicker(elt);
+            }, this));
+        },
+
+        addDatePicker: function(element) {
+            // Can be overridden by users to activate a custom datepicker on date inputs
+            // TODO: move this code to eCollection when refactoring
+            var $el = $(element),
+                val = $el.val();
+            $el.attr('type', 'text');
+            $el.datepicker({format: 'dd/mm/yyyy'})
+                .on('changeDate', $el, function(e) {
+                    if (e.viewMode == 'days') {
+                        e.data.trigger('input');
+                    }
+                });
+            $el.on('input', function(e) {$(this).datepicker('hide');});
+            $el.on('blur', function(e) {$(this).datepicker('hide');});
+            if (val) $el.datepicker('setValue', val);
+        },
+
         onPageRedim: function(e) {
             eCollection.router.navigate(this.buildUrl({pageSize: $(e.target).val()}), {trigger: true});
         },
@@ -299,6 +328,26 @@ NS.UI = (function(ns) {
                         val = val.replace(/,/, '.');
                     else
                         val = '';
+                    break;
+                case 'Date':
+                    var val = $.trim($form.find('[name="val"]').val()),
+                        parts;
+                    if (! /\d{2}\/\d{2}\/\d{4}/.test(val)) {
+                        val = '';
+                        break;
+                    }
+                    // Beware of new Date(s), if s is 01/10/2012, it is interpreted as Jan 10, 2012
+                    parts = val.split('/')
+                    val = new Date(parts[2], parts[1]-1, parts[0]);
+                    if (isFinite(val)) {
+                        // Remove TZ offset
+                        // FIXME: it should be possible to handle TZ in a clever way, I have to investigate...
+                        // Note that the problem comes from the server data which pretend to be UTC but is not
+                        val.setMinutes(val.getMinutes() - val.getTimezoneOffset());
+                        val = val.toISOString();
+                    } else {
+                        val = '';
+                    }
                     break;
                 case 'Boolean':
                     var val = $form.find('[name="val"]:checked').val() || '';
