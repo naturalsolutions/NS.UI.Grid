@@ -272,7 +272,10 @@ NS.UI = (function(ns) {
         },
 
         onPageRedim: function(e) {
-            eCollection.router.navigate(this.buildUrl({pageSize: $(e.target).val()}), {trigger: true});
+            var $select = $(e.target),
+                size = parseInt($select.val());
+            if (! isNaN(size))
+                this.trigger('pagesize', size);
         },
 
         onPage: function(e) {
