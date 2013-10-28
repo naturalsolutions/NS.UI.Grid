@@ -51,32 +51,12 @@ NS.UI = (function(ns) {
         initialize: function(options) {
             eCollection.utilities.BaseView.prototype.initialize.apply(this, arguments);
             this.listenTo(this.collection, 'reset', this.render);
-            this.baseUrl = options.baseUrl || '#';
             this.sortColumn = options.sortColumn;
             this.sortOrder = options.sortOrder;
             this.currentSchemaId = options.currentSchemaId || '';
             this.filters = options.filters || {};
             this.disableFilters = options.disableFilters || false;
             this._numberRegexp = new RegExp('^([0-9]+|[0-9]*[\.,][0-9]+)$');
-        },
-
-        buildUrl: function(params) {
-            params = params || {};
-            var options = {
-                page: params.page || this.currentPage,
-                pageSize: params.pageSize || this.pageSize
-            };
-            var sortColumn = params.sortColumn || this.sortColumn;
-            var sortOrder = params.sortOrder || this.sortOrder || 'asc';
-            if (typeof(sortColumn) !== 'undefined') {
-                options.sortColumn = sortColumn;
-                options.sortOrder = sortOrder;
-            }
-            var currentFilter = ('filter' in params) ? params.filter : this.currentFilter;
-            if (currentFilter != '') options.filter = currentFilter;
-            options.filters = [];
-            _.each(this.filters, function(v, k) {options.filters.push(k + ':' + v);});
-            return this.baseUrl + '?' + $.param(options);
         },
 
         _getSubHeaders: function(schema, prefix) {
@@ -256,19 +236,6 @@ NS.UI = (function(ns) {
 
         addDatePicker: function(element) {
             // Can be overridden by users to activate a custom datepicker on date inputs
-            // TODO: move this code to eCollection when refactoring
-            var $el = $(element),
-                val = $el.val();
-            $el.attr('type', 'text');
-            $el.datepicker({format: 'dd/mm/yyyy'})
-                .on('changeDate', $el, function(e) {
-                    if (e.viewMode == 'days') {
-                        e.data.trigger('input');
-                    }
-                });
-            $el.on('input', function(e) {$(this).datepicker('hide');});
-            $el.on('keydown', function(e) {if (e.keyCode == 27 || e.keyCode == 9) $(this).datepicker('hide');});
-            if (val) $el.datepicker('setValue', val);
         },
 
         onPageRedim: function(e) {
