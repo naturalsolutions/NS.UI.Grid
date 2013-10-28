@@ -41,8 +41,7 @@ NS.UI = (function(ns) {
             'submit .filter-form form': 'addFilter',
             'input .filter-form input[type="number"]': 'onNumberInput',
             'reset .filter-form form': 'clearFilter',
-            'change .grid-page-selector select': 'onPageRedim',
-            'change .grid-filter select': 'onFilter'
+            'change .pagination select[name="pagesizes"]': 'onPageRedim'
         },
 
         // Config
@@ -55,8 +54,7 @@ NS.UI = (function(ns) {
             this.baseUrl = options.baseUrl || '#';
             this.sortColumn = options.sortColumn;
             this.sortOrder = options.sortOrder;
-            this.filterOptions = options.filterOptions || [];
-            this.currentFilter = options.currentFilter || '';
+            this.currentSchemaId = options.currentSchemaId || '';
             this.filters = options.filters || {};
             this.disableFilters = options.disableFilters || false;
             this._numberRegexp = new RegExp('^([0-9]+|[0-9]*[\.,][0-9]+)$');
@@ -106,10 +104,7 @@ NS.UI = (function(ns) {
                         break;
                     case 'MultiSchema':
                         var schemas = _.result(field, 'schemas');
-                        var selected = this.grid.currentFilter;
-                        if (selected === '' && this.grid.filterOptions.length > 0) {
-                            selected = this.grid.filterOptions[0].id;
-                        }
+                        var selected = this.grid.currentSchemaId;
                         if (selected !== '') {
                             header.sub = this.grid._getSubHeaders(schemas[selected], this.prefix + id + '.');
                         }
@@ -239,12 +234,8 @@ NS.UI = (function(ns) {
             }
 
             return {
-                id: 'grid-' + this.collection.id,
-                verboseName: 'List of ' + this.collection.model.verboseName.toLowerCase(),
                 pageSizes: this.pageSizes,
                 pageSize: pageSize,
-                filterOptions: this.filterOptions,
-                currentFilter: this.currentFilter,
                 headerIterator: this.getHeaderIterator(),
                 pager: pagerData
             };
@@ -295,10 +286,6 @@ NS.UI = (function(ns) {
             var $input = $(e.target),
                 val = $input.val();
             $input.toggleClass('error', val != '' && !this._numberRegexp.test(val));
-        },
-
-        onFilter: function(e) {
-            eCollection.router.navigate(this.buildUrl({filter: $(e.target).val()}), {trigger: true});
         },
 
         clearFilter: function(e) {
