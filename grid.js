@@ -7,21 +7,143 @@ var NS = window.NS || {};
 NS.UI = (function(ns) {
     "use strict";
 
-    var GridRow = eCollection.utilities.BaseView.extend({
-        template: 'gridrow',
+    var tplCache = {}, BaseView;
+
+    /*
+     * Utility class holding rendering process and sub-view management.
+     * It may looks like LayoutManager because this grid component used to depend on it.
+     */
+    BaseView = Backbone.View.extend({
+
+        initialize: function() {
+            this._views = {};
+        },
+
+        /*
+         * Template management
+         */
+
+        // Child classes must declare a template and store the template string in NS.UI.GridTemplates[template]
+        template: '',
+
+        getTemplate: function(name) {
+            if (!(this.template in tplCache))
+                tplCache[this.template] = _.template(ns.GridTemplates[this.template], null, {variable: 'data'});
+            return tplCache[this.template];
+        },
+
+        /*
+         * Sub-view management
+         */
+
+        getViews: function(selector) {
+            if (selector in this._views)
+                return this._views[selector];
+            return [];
+        },
+
+        insertView: function(selector, view) {
+            // Keep a reference to this selector/view pair
+            if (! (selector in this._views))
+                this._views[selector] = [];
+            this._views[selector].push(view);
+            // Forget this subview when it gets removed
+            view.on('remove', function(view) {
+                var i, found = false;
+                for (i=0; i<this.length; i++) {
+                    if (this[i].cid == view.cid) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found) this.splice(i, 1);
+            }, this._views[selector]);
+        },
+
+        removeViews: function(selector) {
+            if (selector in this._views)
+                while (this._views[selector].length) {
+                    this._views[selector][0].remove();
+                }
+        },
+
+        // Take care of sub-views before removing
+        remove: function() {
+            _.each(this._views, function(viewList, selector) {
+                _.each(viewList, function(view) {
+                    view.remove();
+                });
+            });
+            this.trigger('remove', this);
+            Backbone.View.prototype.remove.apply(this, arguments);
+        },
+
+        /*
+         * Rendering process
+         */
+
+        // To be implemented by child classes
+        serialize: function() {
+            return {};
+        },
+
+        // Can be overridden by child classes
+        beforeRender: function() {},
+        afterRender: function() {},
+
+        render: function() {
+            // Give a chance to child classes to do something before render
+            this.beforeRender();
+
+            var tpl = this.getTemplate(),
+                data = this.serialize(),
+                rawHtml = tpl(data),
+                rendered;
+
+            // Re-use nice "noel" trick from LayoutManager
+            rendered = this.$el.html(rawHtml).children();
+            this.$el.replaceWith(rendered);
+            this.setElement(rendered);
+
+            // Add sub-views
+            var base;
+            _.each(this._views, function(viewList, selector) {
+                base = (selector) ? this.$el.find(selector) : this.$el;
+                _.each(viewList, function(view) {
+                    view.render().$el.appendTo(this);
+                }, base);
+            }, this);
+            base = null; // Allow GC
+
+            // Give a chance to child classes to do something after render
+            this.afterRender();
+
+            return this;
+        }
+    });
+
+    var GridRow = BaseView.extend({
+        template: 'row',
 
         events: {
             'click': 'onClick'
         },
 
         initialize: function() {
-            eCollection.utilities.BaseView.prototype.initialize.apply(this, arguments);
+            BaseView.prototype.initialize.apply(this, arguments);
             this.listenTo(this.model, 'change', this.render);
         },
 
         serialize: function() {
             var viewData = {};
             viewData.attr = this.model.getFlatAttrs();
+            viewData.maxRowSpan = 1;
+            _.each(viewData.attr, function(element) {
+                if (_.isArray(element)) {
+                    var len = element.length;
+                    viewData.maxRowSpan = (len > viewData.maxRowSpan) ? len : viewData.maxRowSpan;
+                }
+            });
             return viewData;
         },
 
@@ -31,7 +153,7 @@ NS.UI = (function(ns) {
         }
     });
 
-    ns.Grid = eCollection.utilities.BaseView.extend({
+    ns.Grid = BaseView.extend({
         template: 'grid',
 
         events: {
@@ -49,7 +171,7 @@ NS.UI = (function(ns) {
         pageSizes: [10, 15, 25, 50],
 
         initialize: function(options) {
-            eCollection.utilities.BaseView.prototype.initialize.apply(this, arguments);
+            BaseView.prototype.initialize.apply(this, arguments);
             this.listenTo(this.collection, 'reset', this.render);
             this.sortColumn = options.sortColumn;
             this.sortOrder = options.sortOrder;
@@ -222,6 +344,9 @@ NS.UI = (function(ns) {
         },
 
         beforeRender: function() {
+            // Clear rows of a previous render
+            this.removeViews('tbody');
+            // Add a subview for each grid row
             this.collection.each(function(item) {
                 this.insertView('tbody', new GridRow({model: item}));
             }, this);
@@ -308,11 +433,12 @@ NS.UI = (function(ns) {
             }
             if (val == '' && key in this.filters) {
                 this.trigger('unfilter', key);
+                $form.find('.error').removeClass('error');
             } else if (val != '') {
                 this.trigger('filter', key, val);
-            } else {
-                $form.parents('.filter-form').hide();
+                $form.find('.error').removeClass('error');
             }
+            $form.parents('.filter-form').hide();
         },
 
         toggleFilter: function(e) {
@@ -338,6 +464,11 @@ NS.UI = (function(ns) {
             }
         }
     });
+
+    ns.GridTemplates = {
+        'row': '',
+        'grid': ''
+    };
 
     return ns;
 })(NS.UI || {});
