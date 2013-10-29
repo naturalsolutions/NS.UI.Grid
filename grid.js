@@ -166,19 +166,31 @@ NS.UI = (function(ns) {
             'change .pagination select[name="pagesizes"]': 'onPageRedim'
         },
 
-        // Config
-        maxIndexButtons: 7, // number of index button to show
-        pageSizes: [10, 15, 25, 50],
-
         initialize: function(options) {
             BaseView.prototype.initialize.apply(this, arguments);
-            this.listenTo(this.collection, 'reset', this.render);
-            this.sortColumn = options.sortColumn;
-            this.sortOrder = options.sortOrder;
-            this.currentSchemaId = options.currentSchemaId || '';
-            this.filters = options.filters || {};
-            this.disableFilters = options.disableFilters || false;
+
+            // Config
+            options = options || {};
+            _.defaults(options, {
+                currentSchemaId: '',
+                filters: {},
+                disableFilters: false,
+                size: 0,
+                pageSizes: [10, 15, 25, 50],
+                pageSize: 10,
+                page: 1,
+                maxIndexButtons: 7
+            });
+            _.extend(this, _.pick(options, ['sortColumn', 'sortOrder', 'currentSchemaId', 'filters', 'disableFilters', 'size', 'pageSizes', 'pageSize', 'page', 'maxIndexButtons']));
+            if (options.collection) this.setCollection(options.collection);
+
             this._numberRegexp = new RegExp('^([0-9]+|[0-9]*[\.,][0-9]+)$');
+        },
+
+        setCollection: function(c) {
+            if (this.collection) this.stopListening(this.collection);
+            this.collection = c;
+            this.listenTo(c, 'reset', this.render);
         },
 
         _getSubHeaders: function(schema, prefix) {
@@ -265,15 +277,12 @@ NS.UI = (function(ns) {
         },
 
         serialize: function() {
-            var c = this.collection;
-            var pageSize;
-
             // Default view data
             var pagerData = {
                 firstPage: 1,
-                lastPage: null,
-                currentPage: null,
-                totalCount: c.totalCount,
+                lastPage: Math.ceil(this.size / this.pageSize),
+                page: this.page,
+                totalCount: this.size,
                 windowStart: 1,
                 windowEnd: this.maxIndexButtons,
                 activeFirst: false,
@@ -284,60 +293,34 @@ NS.UI = (function(ns) {
                 showRightDots: true
             };
 
-            // Infere view state form the collection state
-            if (c.limit && _.contains(this.pageSizes, c.limit)) {
-                pageSize = c.limit;
-            } else {
-                throw new Error('Grid page size is invalid or unknown.');
+            // Decide what to do with arrow buttons
+            if (pagerData.page > pagerData.firstPage) {
+                pagerData.activeFirst = true;
+                pagerData.activePrevious = true;
             }
-
-            if (c.totalCount) { pagerData.lastPage = Math.ceil(c.totalCount / pageSize);}
-            var startIndexPage = Math.floor(c.skip / pageSize);
-            var endIndexPage = Math.floor((c.skip + c.localCount - 1) / pageSize);
-            if (startIndexPage == endIndexPage) {
-                pagerData.currentPage = startIndexPage + 1;
-            } else {
-                pagerData.currentPage = null;
+            if (pagerData.lastPage !== null && pagerData.page < pagerData.lastPage) {
+                pagerData.activeLast = true;
+                pagerData.activeNext = true;
             }
-
-            // Keep current page in memory, we'll need it later
-            this.currentPage = pagerData.currentPage;
-            this.pageSize = pageSize;
-
-            // Adapt to the current collection state if it is known
-            if (pagerData.currentPage !== null) {
-                // Decide what to do with arrow buttons
-                if (pagerData.currentPage > pagerData.firstPage) {
-                    pagerData.activeFirst = true;
-                    pagerData.activePrevious = true;
-                }
-                if (pagerData.lastPage !== null && pagerData.currentPage < pagerData.lastPage) {
-                    pagerData.activeLast = true;
-                    pagerData.activeNext = true;
-                }
-                // Compute a window for indexes
-                pagerData.windowStart = pagerData.currentPage - Math.floor(this.maxIndexButtons/2);
-                pagerData.windowEnd = pagerData.currentPage + Math.floor(this.maxIndexButtons/2) + this.maxIndexButtons % 2 - 1;
-                if (pagerData.windowStart < pagerData.firstPage) {
-                    pagerData.windowEnd += pagerData.firstPage - pagerData.windowStart;
-                    pagerData.windowStart = pagerData.firstPage;
-                }
-                if (pagerData.windowEnd > pagerData.lastPage) {
-                    var offset = pagerData.windowEnd - pagerData.lastPage;
-                    if (pagerData.windowStart > pagerData.firstPage + offset) pagerData.windowStart -= offset;
-                    pagerData.windowEnd = pagerData.lastPage;
-                }
-                // Append/Prepend dots where necessary
-                pagerData.showRightDots = pagerData.windowEnd < pagerData.lastPage;
-                pagerData.showLeftDots = pagerData.windowStart > pagerData.firstPage;
-            } else if (pagerData.lastPage !== null) {
-                // When collection count is known but currentPage can't be computed (not probable)
-                 pagerData.windowEnd = (this.maxIndexButtons < pagerData.lastPage) ? this.maxIndexButtons : pagerData.lastPage;
+            // Compute a window for indexes
+            pagerData.windowStart = pagerData.page - Math.floor(this.maxIndexButtons/2);
+            pagerData.windowEnd = pagerData.page + Math.floor(this.maxIndexButtons/2) + this.maxIndexButtons % 2 - 1;
+            if (pagerData.windowStart < pagerData.firstPage) {
+                pagerData.windowEnd += pagerData.firstPage - pagerData.windowStart;
+                pagerData.windowStart = pagerData.firstPage;
             }
+            if (pagerData.windowEnd > pagerData.lastPage) {
+                var offset = pagerData.windowEnd - pagerData.lastPage;
+                if (pagerData.windowStart > pagerData.firstPage + offset) pagerData.windowStart -= offset;
+                pagerData.windowEnd = pagerData.lastPage;
+            }
+            // Append/Prepend dots where necessary
+            pagerData.showRightDots = pagerData.windowEnd < pagerData.lastPage;
+            pagerData.showLeftDots = pagerData.windowStart > pagerData.firstPage;
 
             return {
                 pageSizes: this.pageSizes,
-                pageSize: pageSize,
+                pageSize: this.pageSize,
                 headerIterator: this.getHeaderIterator(),
                 pager: pagerData
             };
