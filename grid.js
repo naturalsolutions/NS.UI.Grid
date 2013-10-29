@@ -100,6 +100,10 @@ NS.UI = (function(ns) {
                 rawHtml = tpl(data),
                 rendered;
 
+            // /!\ if this row view already been rendered, this.$el may contain more than one element, remove them
+            this.undelegateEvents();
+            this.$el.not(':first').remove();
+            this.$el = this.$el.first();
             // Re-use nice "noel" trick from LayoutManager
             rendered = this.$el.html(rawHtml).children();
             this.$el.replaceWith(rendered);
