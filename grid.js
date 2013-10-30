@@ -138,9 +138,82 @@ NS.UI = (function(ns) {
             this.listenTo(this.model, 'change', this.render);
         },
 
+        _getFlatAttrs: function (prefix, values, schema, attrs) {
+
+            _.each(schema, function (field, fieldName) {
+
+                if (('main' in field) && !field.main) return;
+                switch (field.type) {
+                    case 'MultiSchema':
+                        var schemas = _.result(schema[fieldName], 'schemas');
+                        this._getFlatAttrs(
+                            prefix + fieldName + '.',
+                            values,
+                            schemas[attrs[schema[fieldName].selector].id],
+                            attrs[fieldName] || {}
+                        );
+                        break;
+                    case 'NestedModel':
+                        this._getFlatAttrs(
+                            prefix + fieldName + '.',
+                            values,
+                            schema[fieldName].model.schema,
+                            attrs[fieldName].attributes
+                        );
+                        break;
+                    case 'List':
+                        if (Object.keys(attrs[fieldName]).length === 0 ) {
+                            var array = [];
+                            _.each(schema[fieldName].model.schema, function(v) {
+                                if ("main" in v) {
+                                    if (v['main']) {
+                                        array.push( {} );
+                                    }
+                                } else {
+                                    array.push( {} );
+                                }
+                            });
+                            values[fieldName] = array;
+                        } else {
+                            values[fieldName] = [];
+                            _.each(attrs[fieldName], function (model, idx) {
+                                var tmp = {};
+                                this._getFlatAttrs(
+                                    prefix + fieldName + '.' + idx + '.',
+                                    tmp,
+                                    schema[fieldName].model.schema,
+                                    attrs[fieldName][idx].attributes
+                                );
+                                values[fieldName][idx] = tmp;
+                            }, this);
+                        }
+
+                        break;
+                    case 'Date':
+                        var d = attrs[fieldName];
+                        if (_.isDate(d))
+                            d = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear();
+                        values[prefix + fieldName] = d;
+                        break;
+                    default:
+                        values[prefix + fieldName] = attrs[fieldName];
+                        break;
+                }
+            }, this);
+        },
+
+        getFlatAttrs: function (model) {
+            if (! model.constructor.schema) { return model.attributes; }
+            var values = {};
+
+            this._getFlatAttrs('', values, model.constructor.schema, model.attributes);
+
+            return values;
+        },
+
         serialize: function() {
             var viewData = {};
-            viewData.attr = this.model.getFlatAttrs();
+            viewData.attr = this.getFlatAttrs(this.model);
             viewData.maxRowSpan = 1;
             _.each(viewData.attr, function(element) {
                 if (_.isArray(element)) {
