@@ -100,10 +100,6 @@ NS.UI = (function(ns) {
                 rawHtml = tpl(data),
                 rendered;
 
-            // /!\ if this row view already been rendered, this.$el may contain more than one element, remove them
-            this.undelegateEvents();
-            this.$el.not(':first').remove();
-            this.$el = this.$el.first();
             // Re-use nice "noel" trick from LayoutManager
             rendered = this.$el.html(rawHtml).children();
             this.$el.replaceWith(rendered);
@@ -405,7 +401,7 @@ NS.UI = (function(ns) {
 
         beforeRender: function() {
             // Clear rows of a previous render
-            this.removeViews('tbody');
+            this.removeViews('table');
             // Add a subview for each grid row
             this.collection.each(function(item) {
                 var v = new GridRow({model: item});
@@ -530,7 +526,7 @@ NS.UI = (function(ns) {
     });
 
     ns.GridTemplates = {
-        'row': '<% for (var i = 0 ; i < data.maxRowSpan ; i++) {' +
+        'row': '<tbody><% for (var i = 0 ; i < data.maxRowSpan ; i++) {' +
                '    %><tr><%' +
                '    _.each(data.attr, function(value, key) {' +
                '        if (_.isArray(value)) {' +
@@ -558,7 +554,7 @@ NS.UI = (function(ns) {
                '        }' +
                '    });' +
                '    %></tr><%' +
-               '}%>',
+               '}%></tbody>',
         'grid': '<div class="grid">' +
                 '<table class="table table-bordered">' +
                 '    <thead><% data.headerIterator(' +
@@ -594,7 +590,6 @@ NS.UI = (function(ns) {
                 '            </div></th><%' +
                 '        },' +
                 '        function (depth) {%></tr><%}) %></thead>' +
-                '    <tbody></tbody>' +
                 '</table>' +
                 '<div class="pagination pagination-right">' +
                 '<div class="pagination-stats">' +
