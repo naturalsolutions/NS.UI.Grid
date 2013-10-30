@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NS.UI.Grid demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+    <style type="text/css">
+        /* Demo page stylesheet */
+        html, body {margin: 0; padding: 0; font-size: 100%;}
+        body {font-family: sans-serif;}
+        header {margin: 0 2em 3em 2em; padding: 2em 0; border-bottom: 1px solid #bdc3c7;}
+        header h1 {font-size: 3em; margin: 0;}
+        section {margin: 0 2em;}
+        section.error {color: #b94a48; background-color: #f2dede; border: 1px solid #b94a48; border-radius: 0.5em;}
+        section.error p {margin: 1em; font-size: 1.5em;}
+
+        /* Grid stylesheet */
+        .grid table {border-collapse: collapse;}
+        .grid table th {padding: 0; text-align: center; vertical-align: middle; background: #fff; border: 1px solid #ddd;}
+        .grid table td {vertical-align: middle; cursor: pointer; padding: 2px 8px; border: 1px solid #ddd;}
+        .grid table tbody tr:hover {background-color: rgb(220, 220, 255);}
+
+        /* Grid stylesheet - pagination */
+        .pagination {padding: 1em 0; text-align: right;}
+        .pagination ul {margin: 0 1em; list-style-type: none; display: inline-block; padding: 0;}
+        .pagination li {display: inline;}
+        .pagination li > span {border: 1px solid #ddd; float: left; padding: 4px 12px; border-left-width: 0;}
+        .pagination li:first-child > span {border-left-width: 1px;}
+        .pagination li > span[data-target] {cursor: pointer; color: #2e8bcc;}
+        .pagination-stats {display: inline-block; vertical-align: top; margin-top: 5px; color: #999; font-style: italic;}
+        #pagesize-selector {display: inline-block; line-height: 25px; vertical-align: top;}
+        #pagesize-selector select {width: auto; margin-bottom: 0; padding: 0.5em;}
+
+        /* Grid stylesheet - sorting */
+        .grid th .sort-action {position: absolute; top: 0; right: 2px; color: red;}
+        .grid th .sort-action[data-order=""] {color: #aaa;}
+
+        /* grid view: filtering */
+        .grid th > div {padding: 4px 8px; position: relative;}
+        .grid th .filter-action {position: absolute; bottom: 0; right: 2px; color: #aaa;}
+        .grid th .filter-action.active {color: red;}
+        .grid .filter-form {padding: 0.5em; background-color: #fff; border: 1px solid #ccc; position: absolute; left: 100%; top: 100%; margin-left: -15px; display: none;}
+        .grid th:last-child .filter-form {right: 0; margin-left: 0; left: auto;}
+        .grid .filter-form form {margin: 0;}
+        .grid .filter-form .input-append, .grid .filter-form .input-prepend {margin: 0;}
+        .grid .filter-form .filter-form-boolean {margin-left: 0; margin-bottom: 1em;}
+        .grid .filter-form input.error {border-color: #953b39; color: #b94a48;}
+        .grid .filter-form input.error:focus {-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #d59392; -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #d59392; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #d59392;}
+    </style>
+    <script type="text/javascript" src="../jquery-1.9.1.js"></script>
+    <script type="text/javascript" src="../underscore-1.4.4/underscore.js"></script>
+    <script type="text/javascript" src="../backbone-1.0/backbone.js"></script>
+    <script type="text/javascript" src="./grid.js"></script>
+    <script type="text/javascript">
+    window.addEventListener('load', function(e) {
+        // Check whether dependencies are available
+        if (!(window._ && window.$ && window.Backbone)) {
+            var section = document.querySelector('section');
+            section.classList.add('error');
+            section.innerHTML = '<p>Can\'t load either jQuery, Underscore or Backbone, please check your setup.</p>';
+            return;
+        }
+
+        // 1) Declare your model classes (with explicit schema!)
+        var Address = Backbone.Model.extend({
+                // Code whatever behaviour you need at instance level
+            }, {
+                // Declare schema and verbose name at model level
+                schema: {
+                    street: {title: 'Street name', type: 'Text', sortable: true},
+                    housenumber: {title: 'House number', type: 'Text', sortable: true},
+                    city: {title: 'City', type: 'Text', sortable: true}
+                },
+                verboseName: 'Address'
+            }),
+            // Another model
+            Job = Backbone.Model.extend({}, {
+                schema: {
+                    company: {title: 'Company', type: 'Text', sortable: true},
+                    from: {title: 'From', type: 'Text', sortable: true},
+                    to: {title: 'From', type: 'Text', sortable: true},
+                    position: {title: 'Position', type: 'Text', sortable: true}
+                },
+                verboseName: 'Job'
+            }),
+            // Yet another model
+            Person = Backbone.Model.extend({
+                parse: function(resp, options) {
+                    if (_.isObject(resp)) {
+                        if (resp.address)
+                            resp.address = new Address(resp.address);
+                        if (resp.jobs)
+                            _.each(resp.jobs, function(job, idx) {
+                                resp.jobs[idx] = new Job(job);
+                            });
+                    }
+                    return resp;
+                }
+            }, {
+                schema: {
+                    id: {title: 'ID', type: 'Number', editable: false, sortable: true},
+                    title: {title: 'Title', type: 'Select', required: true, options: ['Miss', 'Mrs', 'Mr', 'Ms'], sortable: true},
+                    fName: {title: 'First name', type: 'Text', sortable: true},
+                    lName: {title: 'Last name', type: 'Text', required: true, sortable: true},
+                    dob: {title: 'Date of birth', type: 'Date', format: 'm/d/yy', sortable: true},
+                    address: {title: 'Address', type: 'NestedModel', model: Address, required: true},
+                    jobs: {title: 'Job', type: 'List', model: Job},
+                    sports: {title: 'Sports', type: 'List', type: 'Text'},
+                    comments: {title: 'Any comment ?', type: 'Text', sortable: true}
+                },
+                verboseName: 'Person'
+            }),
+
+            // 2) Instantiate a collection
+            c = new Backbone.Collection([], {model: Person}),
+
+            // 3) Instantiate the grid
+            grid = new NS.UI.Grid({
+                collection: c,
+                pageSize: 10,
+                pageSizes: [5, 10, 20, 50],
+                page: 1,
+                size: 2
+            });
+
+        // 4a) bind the grid to the DOM tree
+        grid.$el.appendTo('section');
+
+        // 4b) Load data and render the grid
+        c.url = 'demo2.json';
+        c.fetch().done(function() {
+            grid.render();
+        });
+    }, false);
+    </script>
+</head>
+<body>
+    <header><h1>NS.UI.Grid demo</h1></header>
+    <section></section>
+</body>
+</html>

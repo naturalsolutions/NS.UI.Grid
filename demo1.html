@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NS.UI.Grid demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+    <style type="text/css">
+        /* Demo page stylesheet */
+        html, body {margin: 0; padding: 0; font-size: 100%;}
+        body {font-family: sans-serif;}
+        header {margin: 0 2em 3em 2em; padding: 2em 0; border-bottom: 1px solid #bdc3c7;}
+        header h1 {font-size: 3em; margin: 0;}
+        section {margin: 0 2em;}
+        section.error {color: #b94a48; background-color: #f2dede; border: 1px solid #b94a48; border-radius: 0.5em;}
+        section.error p {margin: 1em; font-size: 1.5em;}
+
+        /* Grid stylesheet */
+        .grid table {border-collapse: collapse; width: 100%;}
+        .grid table th {padding: 0; text-align: center; vertical-align: middle; background: #fff; border: 1px solid #ddd;}
+        .grid table td {vertical-align: middle; cursor: pointer; padding: 2px 8px; border: 1px solid #ddd;}
+        .grid table tbody tr:hover {background-color: rgb(220, 220, 255);}
+
+        /* Grid stylesheet - pagination */
+        .pagination {padding: 1em 0; text-align: right;}
+        .pagination ul {margin: 0 1em; list-style-type: none; display: inline-block; padding: 0;}
+        .pagination li {display: inline;}
+        .pagination li > span {border: 1px solid #ddd; float: left; padding: 4px 12px; border-left-width: 0;}
+        .pagination li:first-child > span {border-left-width: 1px;}
+        .pagination li > span[data-target] {cursor: pointer; color: #2e8bcc;}
+        .pagination-stats {display: inline-block; vertical-align: top; margin-top: 5px; color: #999; font-style: italic;}
+        #pagesize-selector {display: inline-block; line-height: 25px; vertical-align: top;}
+        #pagesize-selector select {width: auto; margin-bottom: 0; padding: 0.5em;}
+
+        /* Grid stylesheet - sorting */
+        .grid th .sort-action {position: absolute; top: 0; right: 2px; color: red;}
+        .grid th .sort-action[data-order=""] {color: #aaa;}
+
+        /* grid view: filtering */
+        .grid th > div {padding: 4px 8px; position: relative;}
+        .grid th .filter-action {position: absolute; bottom: 0; right: 2px; color: #aaa;}
+        .grid th .filter-action.active {color: red;}
+        .grid .filter-form {padding: 0.5em; background-color: #fff; border: 1px solid #ccc; position: absolute; left: 100%; top: 100%; margin-left: -15px; display: none;}
+        .grid th:last-child .filter-form {right: 0; margin-left: 0; left: auto;}
+        .grid .filter-form form {margin: 0;}
+        .grid .filter-form .input-append, .grid .filter-form .input-prepend {margin: 0;}
+        .grid .filter-form .filter-form-boolean {margin-left: 0; margin-bottom: 1em;}
+        .grid .filter-form input.error {border-color: #953b39; color: #b94a48;}
+        .grid .filter-form input.error:focus {-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #d59392; -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #d59392; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #d59392;}
+    </style>
+    <script type="text/javascript" src="../jquery-1.9.1.js"></script>
+    <script type="text/javascript" src="../underscore-1.4.4/underscore.js"></script>
+    <script type="text/javascript" src="../backbone-1.0/backbone.js"></script>
+    <script type="text/javascript" src="./grid.js"></script>
+    <script type="text/javascript">
+    window.addEventListener('load', function(e) {
+        // Check whether dependencies are available
+        if (!(window._ && window.$ && window.Backbone)) {
+            var section = document.querySelector('section');
+            section.classList.add('error');
+            section.innerHTML = '<p>Can\'t load either jQuery, Underscore or Backbone, please check your setup.</p>';
+            return;
+        }
+
+        // 1) Declare your model classes (with explicit schema!)
+        var Park = Backbone.Model.extend({
+                // Code whatever behaviour you need at instance level
+            }, {
+                // Declare schema and verbose name at model level
+                schema: {
+                    name: {title: 'Name', type: 'Text', sortable: true},
+                    type: {title: 'Type', type: 'Text', sortable: true},
+                    city: {title: 'City', type: 'Text', sortable: true},
+                    longitude: {title: 'Longitude', type: 'Number', sortable: true},
+                    latitude: {title: 'Latitude', type: 'Number', sortable: true}
+                },
+                verboseName: 'Park'
+            }),
+
+            // 2) Instantiate a Backbone collection
+            parks = new Backbone.Collection([], {model: Park}),
+            visibleParks = new Backbone.Collection([], {model: Park}),
+
+            // 3) Instantiate the grid
+            grid = new NS.UI.Grid({
+                collection: visibleParks,
+                pageSize: 10,
+                pageSizes: [5, 10, 20, 50],
+                page: 1
+            });
+
+        // 4) Specify how to handle grid events
+        function reloadGrid() {
+            var data;
+            if (! _.isEmpty(grid.filters))
+                data = parks.where(grid.filters);
+            else
+                data = parks.models;
+            if (grid.sortColumn) {
+                data = _.sortBy(data, function(m) {return m.get(grid.sortColumn);});
+                if (grid.sortOrder == 'desc')
+                    data.reverse();
+            }
+            grid.size = data.length;
+            visibleParks.reset(data.slice((grid.page - 1) * grid.pageSize, grid.page * grid.pageSize));
+        }
+        grid.on('selected', function (model) {console.log(model);});
+        grid.on('sort', function (fieldId, order) {
+            grid.sortColumn = fieldId;
+            grid.sortOrder = order;
+            reloadGrid();
+        });
+        grid.on('unsort', function () {
+            delete grid.sortColumn;
+            delete grid.sortOrder;
+            reloadGrid();
+        });
+        grid.on('filter', function (fieldId, value) {
+            grid.filters[fieldId] = value;
+            grid.page = 1; // Page count will change, keeping current page will be meaning-less
+            reloadGrid();
+        });
+        grid.on('unfilter', function (fieldId) {
+            delete grid.filters[fieldId];
+            grid.page = 1; // Page count will change, keeping current page will be meaning-less
+            reloadGrid();
+        });
+        grid.on('page', function (target) {
+            grid.page = target;
+            reloadGrid();
+        });
+        grid.on('pagesize', function (size) {
+            grid.pageSize = size;
+            reloadGrid();
+        });
+
+        // 5) render the grid (empty at the moment) and bind it to the DOM tree
+        grid.render().$el.appendTo('section');
+
+        // 6) Load data and show a first page
+        parks.url = 'demo1.json';
+        parks.fetch().done(function() {
+            grid.size = parks.length;
+            visibleParks.reset(parks.slice(0, grid.pageSize));
+        });
+    }, false);
+    </script>
+</head>
+<body>
+    <header><h1>NS.UI.Grid demo</h1></header>
+    <section></section>
+</body>
+</html>

@@ -1,0 +1,55 @@
+﻿[{
+"id": 1,
+"title": "Mr",
+"fName": "Jean",
+"lName": "Martin",
+"dob": "1975-06-11T22:00:00.000Z",
+"address": {
+    "street": "Rue de Rome",
+    "housenumber": "45",
+    "city": "Marseille"
+},
+"jobs": [
+    {
+        "company": "Work Inc",
+        "from": "2005",
+        "to": "2008",
+        "position": "developer"
+    },
+    {
+        "company": "World Company",
+        "from": "2008",
+        "to": "2010",
+        "position": "developer"
+    },
+    {
+        "company": "Natural Solutions",
+        "from": "2010",
+        "to": "now",
+        "position": "developer"
+    }
+],
+"sports": ["Hiking", "Diving"],
+"comments": ""
+}, {
+"id": 2,
+"title": "Mrs",
+"fName": "Josette",
+"lName": "Martin",
+"dob": "1978-02-24T00:00:00.000Z",
+"address": {
+    "street": "Avenue de la Liberté",
+    "housenumber": "2bis",
+    "city": "Marseille"
+},
+"jobs": [
+    {
+        "company": "EDF",
+        "from": "2010",
+        "to": "now",
+        "position": "manager"
+    }
+],
+"sports": [],
+"comments": "None"
+}]
