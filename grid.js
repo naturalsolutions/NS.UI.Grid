@@ -48,7 +48,7 @@ NS.UI = (function(ns) {
                 this._views[selector] = [];
             this._views[selector].push(view);
             // Forget this subview when it gets removed
-            view.on('remove', function(view) {
+            view.once('remove', function(view) {
                 var i, found = false;
                 for (i=0; i<this.length; i++) {
                     if (this[i].cid == view.cid) {
@@ -408,7 +408,11 @@ NS.UI = (function(ns) {
             this.removeViews('tbody');
             // Add a subview for each grid row
             this.collection.each(function(item) {
-                this.insertView('tbody', new GridRow({model: item}));
+                var v = new GridRow({model: item});
+                this.insertView('table', v);
+                v.on('selected', function(model) {
+                    this.trigger('selected', model);
+                }, this);
             }, this);
         },
 
