@@ -526,8 +526,94 @@ NS.UI = (function(ns) {
     });
 
     ns.GridTemplates = {
-        'row': '',
-        'grid': ''
+        'row': '<% for (var i = 0 ; i < data.maxRowSpan ; i++) {' +
+               '    %><tr><%' +
+               '    _.each(data.attr, function(value, key) {' +
+               '        if (_.isArray(value)) {' +
+               '            if (value[i] != undefined) { ' +
+               '                if (_.isObject(value[i])) {' +
+               '                    if (_.isEmpty(value[i]) && i === 0) {' +
+               '                        %> <td colspan="<%= value.length %>">&nbsp;</td><%' +
+               '                    } else {' +
+               '                        _.each(value[i], function(v,k) {' +
+               '                            %><td><%= v %></td><%' +
+               '                        });' +
+               '                    }' +
+               '                } else {' +
+               '                    if (i == value.length - 1) {' +
+               '                        %> <td rowspan="<%= data.maxRowSpan - i %>"><%= value[i] %></td> <%' +
+               '                    } else {' +
+               '                        %><td><%= value[i] %></td><%' +
+               '                    }' +
+               '                }' +
+               '            } else if (i === 0) {' +
+               '                %> <td rowspan="<%= data.maxRowSpan %>">&nbsp; </td> <%' +
+               '            }' +
+               '        } else if (i === 0) {' +
+               '            %><td rowspan="<%= data.maxRowSpan %>"><%= value %></td><%' +
+               '        }' +
+               '    });' +
+               '    %></tr><%' +
+               '}%>',
+        'grid': '<div class="grid">' +
+                '<table class="table table-bordered">' +
+                '    <thead><% data.headerIterator(' +
+                '        function (depth) {%><tr><%},' +
+                '        function (cell, depth) {' +
+                '            var colspan = (cell.sub.headers.length > 1) ? \' colspan="\' + cell.sub.headers.length + \'"\' : \'\',' +
+                '                rowspan = (depth > 1 && cell.sub.depth === 0) ? \' rowspan="\' + depth + \'"\' : \'\',' +
+                '                iconClass = (cell.order == "") ? "fa-sort" : (cell.order == "asc") ? "fa-sort-up" : "fa-sort-down";' +
+                '            %><th<%= colspan %><%= rowspan %>><div>' +
+                '                <%= cell.title %>' +
+                '                <% if (cell.sortable) { %><i class="sort-action fa <%= iconClass %>" data-order="<%= cell.order %>" data-id="<%= cell.id %>" title="Sort"></i><% } %>' +
+                '                <% if (cell.filter) { %>' +
+                '                    <i class="filter-action fa fa-filter<%= (cell.filter.val ? " active" : "" ) %>" title="Filter"></i>' +
+                '                    <div class="filter-form"><form data-type="<%= cell.filter.type %>" data-id="<%= cell.id %>">' +
+                '                        <div>' +
+                '                            <% if (cell.filter.type == "Text") { %>' +
+                '                            <input class="span2" type="text" name="val" value="<%= cell.filter.val || "" %>" />' +
+                '                            <% } else if (cell.filter.type == "Number") { %>' +
+                '                            <input class="span2" type="number" name="val" value="<%= cell.filter.val || "" %>" />' +
+                '                            <% } else if (cell.filter.type == "Date") { %>' +
+                '                            <input class="span2" type="date" name="val" value="<%= cell.filter.val || "" %>" />' +
+                '                            <% } else if (cell.filter.type == "Boolean") { %>' +
+                '                            <div class="span2 filter-form-boolean">' +
+                '                            <label class="radio inline"><input type="radio" name="val" value="true"<%= cell.filter.val == "true" ? " checked" : "" %> />Yes</label>' +
+                '                            <label class="radio inline"><input type="radio" name="val" value="false"<%= cell.filter.val == "false" ? " checked" : "" %> />No</label>' +
+                '                            </div>' +
+                '                            <% } %>' +
+                '                            <button class="btn btn-primary" type="submit">Filter</button>' +
+                '                            <button class="btn" type="reset">Clear</button>' +
+                '                        </div>' +
+                '                    </form></div>' +
+                '                <% } %>' +
+                '            </div></th><%' +
+                '        },' +
+                '        function (depth) {%></tr><%}) %></thead>' +
+                '    <tbody></tbody>' +
+                '</table>' +
+                '<div class="pagination pagination-right">' +
+                '<div class="pagination-stats">' +
+                '<%= (data.pager.totalCount > 1) ? data.pager.totalCount + " items" : data.pager.totalCount + " item" %>,' +
+                '<%= (data.pager.lastPage > 1) ? data.pager.lastPage + " pages" : data.pager.lastPage + " page" %>' +
+                '</div>' +
+                '<ul>' +
+                '<li class="<% if (!data.pager.activeFirst) { %>disabled"><span>&lt;&lt;</span><% } else { %>"><span data-target="<%= data.pager.firstPage %>">&lt;&lt;</span><% } %></li>' +
+                '<li class="<% if (!data.pager.activePrevious) { %>disabled"><span>&lt;</span><% } else { %>"><span data-target="<%= data.pager.page - 1 %>">&lt;</span><% } %></li>' +
+                '<% if (data.pager.showLeftDots) { %><li><span>...</span></li><% } %>' +
+                '<% for (var i=data.pager.windowStart; i<=data.pager.windowEnd; i++) { if (i == data.pager.page) { %><li class="active"><span><%= i %></span></li><% } else { %><li><span data-target="<%= i %>"><%= i %></span></li><% }} %>' +
+                '<% if (data.pager.showRightDots) { %><li><span>...</span></li><% } %>' +
+                '<li class="<% if (!data.pager.activeNext) { %>disabled"><span>&gt;</span><% } else { %>"><span data-target="<%= data.pager.page + 1 %>">&gt;</span><% } %></li>' +
+                '<li class="<% if (!data.pager.activeLast) { %>disabled"><span>&gt;&gt;</span><% } else { %>"><span data-target="<%= data.pager.lastPage %>">&gt;&gt;</span><% } %></li>' +
+                '</ul>' +
+                '<span id="pagesize-selector">' +
+                '<select name="pagesizes">' +
+                '    <% for (var i=0; i<data.pageSizes.length; i++) { %><option<% if (data.pageSizes[i] == data.pageSize) { %> selected="selected"<% } %>><%= data.pageSizes[i] %></option><% } %>' +
+                '</select>' +
+                'rows per page' +
+                '</span>' +
+                '</div>' +
+                '</div>'
     };
 
     return ns;
