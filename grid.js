@@ -26,7 +26,7 @@ NS.UI = (function(ns) {
         // Child classes must declare a template and store the template string in NS.UI.GridTemplates[template]
         template: '',
 
-        getTemplate: function(name) {
+        fetchTemplate: function(name) {
             if (!(this.template in tplCache))
                 tplCache[this.template] = _.template(ns.GridTemplates[this.template], null, {variable: 'data'});
             return tplCache[this.template];
@@ -95,7 +95,7 @@ NS.UI = (function(ns) {
             // Give a chance to child classes to do something before render
             this.beforeRender();
 
-            var tpl = this.getTemplate(),
+            var tpl = this.fetchTemplate(),
                 data = this.serialize(),
                 rawHtml = tpl(data),
                 rendered;
