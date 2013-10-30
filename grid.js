@@ -562,12 +562,12 @@ NS.UI = (function(ns) {
                 '        function (cell, depth) {' +
                 '            var colspan = (cell.sub.headers.length > 1) ? \' colspan="\' + cell.sub.headers.length + \'"\' : \'\',' +
                 '                rowspan = (depth > 1 && cell.sub.depth === 0) ? \' rowspan="\' + depth + \'"\' : \'\',' +
-                '                iconClass = (cell.order == "") ? "fa-sort" : (cell.order == "asc") ? "fa-sort-up" : "fa-sort-down";' +
+                '                iconClass = (cell.order == "") ? "icon-sort" : (cell.order == "asc") ? "icon-sort-up" : "icon-sort-down";' +
                 '            %><th<%= colspan %><%= rowspan %>><div>' +
                 '                <%= cell.title %>' +
-                '                <% if (cell.sortable) { %><i class="sort-action fa <%= iconClass %>" data-order="<%= cell.order %>" data-id="<%= cell.id %>" title="Sort"></i><% } %>' +
+                '                <% if (cell.sortable) { %><i class="sort-action <%= iconClass %>" data-order="<%= cell.order %>" data-id="<%= cell.id %>" title="Sort"></i><% } %>' +
                 '                <% if (cell.filter) { %>' +
-                '                    <i class="filter-action fa fa-filter<%= (cell.filter.val ? " active" : "" ) %>" title="Filter"></i>' +
+                '                    <i class="filter-action icon-filter<%= (cell.filter.val ? " active" : "" ) %>" title="Filter"></i>' +
                 '                    <div class="filter-form"><form data-type="<%= cell.filter.type %>" data-id="<%= cell.id %>">' +
                 '                        <div>' +
                 '                            <% if (cell.filter.type == "Text") { %>' +
