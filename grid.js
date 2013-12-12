@@ -133,7 +133,8 @@ NS.UI = (function(ns) {
             BaseView.prototype.initialize.apply(this, arguments);
             this.listenTo(this.model, 'change', this.render);
 
-            this.formater   = new ns.DateFormater();
+            this.formater   = new ns.DateFormater();    //  create date formater
+            this.dateFormat = arguments[0].format;      //  get date format from options
             
         },
 
@@ -191,7 +192,7 @@ NS.UI = (function(ns) {
                         var d = attrs[fieldName];       
 
                         if (d !== undefined && _.isDate(new Date(d))) {
-                            d = this.formater.format(new Date(d), this.options.format);
+                            d = this.formater.format(new Date(d), this.dateFormat);
                         }
                         values[prefix + fieldName] = d;
                         break;
@@ -262,7 +263,9 @@ NS.UI = (function(ns) {
             if (options.collection) this.setCollection(options.collection);
 
             this._numberRegexp = new RegExp('^([0-9]+|[0-9]*[\.,][0-9]+)$');
-            
+
+            this.dateFormat = options.dateFormat;   //  initialise dateFormat for grid from options arguments
+
         },
 
         setCollection: function(c) {
@@ -411,7 +414,7 @@ NS.UI = (function(ns) {
             this.collection.each(function(item) {
                 var v = new GridRow({
                     model: item,
-                    format: eCollection.config.dateFormat
+                    format: this.dateFormat //  set dateFormat for each GridRow
                 });
                 this.insertView('table', v);
                 v.on('selected', function(model) {
