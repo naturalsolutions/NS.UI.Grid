@@ -8,7 +8,7 @@ NS.UI = (function(ns) {
     "use strict";
 
     var tplCache = {}, BaseView;
-
+    
     /*
      * Utility class holding rendering process and sub-view management.
      * It may looks like LayoutManager because this grid component used to depend on it.
@@ -132,10 +132,13 @@ NS.UI = (function(ns) {
         initialize: function() {
             BaseView.prototype.initialize.apply(this, arguments);
             this.listenTo(this.model, 'change', this.render);
+
+            this.formater   = new ns.DateFormater();
+            
         },
 
         _getFlatAttrs: function (prefix, values, schema, attrs) {
-
+    
             _.each(schema, function (field, fieldName) {
 
                 if (('main' in field) && !field.main) return;
@@ -183,12 +186,13 @@ NS.UI = (function(ns) {
                                 values[fieldName][idx] = tmp;
                             }, this);
                         }
-
                         break;
-                    case 'Date':
-                        var d = attrs[fieldName];
-                        if (_.isDate(d))
-                            d = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear();
+                    case 'Date':                        
+                        var d = attrs[fieldName];       
+
+                        if (d !== undefined && _.isDate(new Date(d))) {
+                            d = this.formater.format(new Date(d), this.options.format);
+                        }
                         values[prefix + fieldName] = d;
                         break;
                     default:
@@ -201,7 +205,7 @@ NS.UI = (function(ns) {
         getFlatAttrs: function (model) {
             if (! model.constructor.schema) { return model.attributes; }
             var values = {};
-
+            
             this._getFlatAttrs('', values, model.constructor.schema, model.attributes);
 
             return values;
@@ -241,7 +245,7 @@ NS.UI = (function(ns) {
 
         initialize: function(options) {
             BaseView.prototype.initialize.apply(this, arguments);
-
+            
             // Config
             options = options || {};
             _.defaults(options, {
@@ -258,6 +262,7 @@ NS.UI = (function(ns) {
             if (options.collection) this.setCollection(options.collection);
 
             this._numberRegexp = new RegExp('^([0-9]+|[0-9]*[\.,][0-9]+)$');
+            
         },
 
         setCollection: function(c) {
@@ -404,7 +409,10 @@ NS.UI = (function(ns) {
             this.removeViews('table');
             // Add a subview for each grid row
             this.collection.each(function(item) {
-                var v = new GridRow({model: item});
+                var v = new GridRow({
+                    model: item,
+                    format: eCollection.config.dateFormat
+                });
                 this.insertView('table', v);
                 v.on('selected', function(model) {
                     this.trigger('selected', model);
@@ -526,35 +534,36 @@ NS.UI = (function(ns) {
     });
 
     ns.GridTemplates = {
-        'row': '<tbody><% for (var i = 0 ; i < data.maxRowSpan ; i++) {' +
-               '    %><tr><%' +
-               '    _.each(data.attr, function(value, key) {' +
-               '        if (_.isArray(value)) {' +
-               '            if (value[i] != undefined) { ' +
-               '                if (_.isObject(value[i])) {' +
-               '                    if (_.isEmpty(value[i]) && i === 0) {' +
-               '                        %> <td colspan="<%= value.length %>">&nbsp;</td><%' +
-               '                    } else {' +
-               '                        _.each(value[i], function(v,k) {' +
-               '                            %><td><%= v %></td><%' +
-               '                        });' +
-               '                    }' +
-               '                } else {' +
-               '                    if (i == value.length - 1) {' +
-               '                        %> <td rowspan="<%= data.maxRowSpan - i %>"><%= value[i] %></td> <%' +
-               '                    } else {' +
-               '                        %><td><%= value[i] %></td><%' +
-               '                    }' +
-               '                }' +
-               '            } else if (i === 0) {' +
-               '                %> <td rowspan="<%= data.maxRowSpan %>">&nbsp; </td> <%' +
-               '            }' +
-               '        } else if (i === 0) {' +
-               '            %><td rowspan="<%= data.maxRowSpan %>"><%= value %></td><%' +
-               '        }' +
-               '    });' +
-               '    %></tr><%' +
-               '}%></tbody>',
+        'row':
+                '<tbody><% for (var i = 0 ; i < data.maxRowSpan ; i++) {' +
+                '    %><tr><%' +
+                '    _.each(data.attr, function(value, key) {' +
+                '        if (_.isArray(value)) {' +
+                '            if (value[i] != undefined) { ' +
+                '                if (_.isObject(value[i])) {' +
+                '                    if (_.isEmpty(value[i]) && i === 0) {' +
+                '                        %> <td colspan="<%= value.length %>">&nbsp;</td><%' +
+                '                    } else {' +
+                '                        _.each(value[i], function(v,k) {' +
+                '                            %><td><%= v %></td><%' +
+                '                        });' +
+                '                    }' +
+                '                } else {' +
+                '                    if (i == value.length - 1) {' +
+                '                        %> <td rowspan="<%= data.maxRowSpan - i %>"><%= value[i] %></td> <%' +
+                '                    } else {' +
+                '                        %><td><%= value[i] %></td><%' +
+                '                    }' +
+                '                }' +
+                '            } else if (i === 0) {' +
+                '                %> <td rowspan="<%= data.maxRowSpan %>">&nbsp; </td> <%' +
+                '            }' +
+                '        } else if (i === 0) {' +
+                '            %><td rowspan="<%= data.maxRowSpan %>"><%= value %></td><%' +
+                '        }' +
+                '    });' +
+                '    %></tr><%' +
+                '}%></tbody>',
         'grid': '<div class="grid">' +
                 '<table class="table table-bordered">' +
                 '    <thead><% data.headerIterator(' +
@@ -615,5 +624,83 @@ NS.UI = (function(ns) {
                 '</div>'
     };
 
+    ns.DateFormater = function DateFmt() {
+        
+        var lang = (["fr", "en"].indexOf( (navigator.language || navigator.userLanguage) ) > -1) ? (navigator.language || navigator.userLanguage) : "en";
+
+        var month = {
+            "en" : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+            "fr" : ["Jan", "Fev", "Mar", "Avr", "Mai", "Jui", "Juil", "Aou", "Sep", "Oct", "Nov", "Dec"]
+        };        
+        var days = {
+            "en" : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+            "fr" : ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
+        };
+        var zeroPad = function(number) {
+            return ("0" + number).substr(-2, 2);
+        };
+        var dateMarkers = {
+            d : ['getDate',  function(v) { 
+                    return zeroPad(v); 
+            }],
+            m : ['getMonth', function(v) { 
+                return zeroPad(v + 1); 
+            }],
+            n : ['getMonth', function(v) { 
+                return month[lang][v]; 
+            }],
+            w : ['getDay',   function(v) { 
+                return days[lang][v]; 
+            }],
+            y : ['getFullYear'],
+            H: ['getHours', function(v) {
+                    return zeroPad(v)
+            }],
+            M: ['getMinutes', function(v) {
+                    return zeroPad(v)
+            }],
+            S: ['getSeconds', function(v) {
+                    return zeroPad(v)
+            }],
+            i: ['toISOString']
+        };
+        var dateFunction = function(date, item) {
+            switch (item) {                
+                case "dd"   : return zeroPad(date.getDate()); break;                
+                case "d"    : return date.getDate(); break;                    
+                case "mm"   : return zeroPad(date.getMonth() + 1); break;                    
+                case "m"    : return (date.getMonth() + 1); break;                    
+                case "yyyy" : return date.getFullYear(); break;                    
+                case "yy"   : return date.getFullYear().toString().substr(2, 2); break;
+                    
+                //  not used for moment
+                case "w"    : return days[lang][date.getDay()]; break;
+                case "n"    : return month[lang][date.getMonth()]; break;
+            };
+        };
+        this.format = function(date, formatString) {            
+            var res = "";
+            /*if (formatString.indexOf("n") > -1 || formatString.indexOf('w') > -1) {
+                _.each( formatString.split('/'), function(item) {
+                    res += dateFunction(date, item) + " ";
+                });
+            } else {*/
+                _.each( formatString.split('/'), function(item) {
+                    res += dateFunction(date, item) + '/';
+                });
+            /*}            */
+            return res.substr(0, res.length - 1);            
+            /*var dateTxt = formatString.replace(/%(.)/g, function(m, p) {
+                var rv = date[(dateMarkers[p])[0]]();
+                if (dateMarkers[p][1] != null) {
+                    rv = dateMarkers[p][1](rv);
+                }
+                return rv;
+            });
+            return dateTxt;*/            
+        };
+    };
+    
     return ns;
+    
 })(NS.UI || {});
