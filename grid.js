@@ -135,7 +135,6 @@ NS.UI = (function(ns) {
 
             this.formater   = new ns.DateFormater();    //  create date formater
             this.dateFormat = arguments[0].format;      //  get date format from options
-            
         },
 
         _getFlatAttrs: function (prefix, values, schema, attrs) {
@@ -246,7 +245,6 @@ NS.UI = (function(ns) {
 
         initialize: function(options) {
             BaseView.prototype.initialize.apply(this, arguments);
-            
             // Config
             options = options || {};
             _.defaults(options, {
@@ -265,7 +263,6 @@ NS.UI = (function(ns) {
             this._numberRegexp = new RegExp('^([0-9]+|[0-9]*[\.,][0-9]+)$');
 
             this.dateFormat = options.dateFormat;   //  initialise dateFormat for grid from options arguments
-
         },
 
         setCollection: function(c) {
@@ -634,14 +631,17 @@ NS.UI = (function(ns) {
         var month = {
             "en" : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
             "fr" : ["Jan", "Fev", "Mar", "Avr", "Mai", "Jui", "Juil", "Aou", "Sep", "Oct", "Nov", "Dec"]
-        };        
+        };    
+        
         var days = {
             "en" : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
             "fr" : ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
         };
+        
         var zeroPad = function(number) {
             return ("0" + number).substr(-2, 2);
         };
+        
         var dateMarkers = {
             d : ['getDate',  function(v) { 
                     return zeroPad(v); 
@@ -667,6 +667,7 @@ NS.UI = (function(ns) {
             }],
             i: ['toISOString']
         };
+        
         var dateFunction = function(date, item) {
             switch (item) {                
                 case "dd"   : return zeroPad(date.getDate()); break;                
@@ -675,33 +676,19 @@ NS.UI = (function(ns) {
                 case "m"    : return (date.getMonth() + 1); break;                    
                 case "yyyy" : return date.getFullYear(); break;                    
                 case "yy"   : return date.getFullYear().toString().substr(2, 2); break;
-                    
-                //  not used for moment
-                case "w"    : return days[lang][date.getDay()]; break;
-                case "n"    : return month[lang][date.getMonth()]; break;
             };
         };
+        
         this.format = function(date, formatString) {            
             var res = "";
-            /*if (formatString.indexOf("n") > -1 || formatString.indexOf('w') > -1) {
-                _.each( formatString.split('/'), function(item) {
-                    res += dateFunction(date, item) + " ";
-                });
-            } else {*/
-                _.each( formatString.split('/'), function(item) {
-                    res += dateFunction(date, item) + '/';
-                });
-            /*}            */
-            return res.substr(0, res.length - 1);            
-            /*var dateTxt = formatString.replace(/%(.)/g, function(m, p) {
-                var rv = date[(dateMarkers[p])[0]]();
-                if (dateMarkers[p][1] != null) {
-                    rv = dateMarkers[p][1](rv);
-                }
-                return rv;
+            
+            _.each(formatString.split('/'), function(item) {
+                res += dateFunction(date, item) + '/';
             });
-            return dateTxt;*/            
+            
+            return res.substr(0, res.length - 1);
         };
+        
     };
     
     return ns;
