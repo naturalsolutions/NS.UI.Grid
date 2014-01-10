@@ -8,30 +8,26 @@ NS.UI = (function(ns) {
     "use strict";
 
     var tplCache = {}, BaseView;
-    
+
     /*
      * Utility class holding rendering process and sub-view management.
      * It may looks like LayoutManager because this grid component used to depend on it.
      */
     BaseView = Backbone.View.extend({
-
         initialize: function() {
             this._views = {};
         },
-
         /*
          * Template management
          */
 
         // Child classes must declare a template and store the template string in NS.UI.GridTemplates[template]
         template: '',
-
         fetchTemplate: function(name) {
             if (!(this.template in tplCache))
                 tplCache[this.template] = _.template(ns.GridTemplates[this.template], null, {variable: 'data'});
             return tplCache[this.template];
         },
-
         /*
          * Sub-view management
          */
@@ -41,32 +37,30 @@ NS.UI = (function(ns) {
                 return this._views[selector];
             return [];
         },
-
         insertView: function(selector, view) {
             // Keep a reference to this selector/view pair
-            if (! (selector in this._views))
+            if (!(selector in this._views))
                 this._views[selector] = [];
             this._views[selector].push(view);
             // Forget this subview when it gets removed
             view.once('remove', function(view) {
                 var i, found = false;
-                for (i=0; i<this.length; i++) {
+                for (i = 0; i < this.length; i++) {
                     if (this[i].cid == view.cid) {
                         found = true;
                         break;
                     }
                 }
-                if (found) this.splice(i, 1);
+                if (found)
+                    this.splice(i, 1);
             }, this._views[selector]);
         },
-
         removeViews: function(selector) {
             if (selector in this._views)
                 while (this._views[selector].length) {
                     this._views[selector][0].remove();
                 }
         },
-
         // Take care of sub-views before removing
         remove: function() {
             _.each(this._views, function(viewList, selector) {
@@ -77,7 +71,6 @@ NS.UI = (function(ns) {
             this.trigger('remove', this);
             Backbone.View.prototype.remove.apply(this, arguments);
         },
-
         /*
          * Rendering process
          */
@@ -86,19 +79,19 @@ NS.UI = (function(ns) {
         serialize: function() {
             return {};
         },
-
         // Can be overridden by child classes
-        beforeRender: function() {},
-        afterRender: function() {},
-
+        beforeRender: function() {
+        },
+        afterRender: function() {
+        },
         render: function() {
             // Give a chance to child classes to do something before render
             this.beforeRender();
 
             var tpl = this.fetchTemplate(),
-                data = this.serialize(),
-                rawHtml = tpl(data),
-                rendered;
+                    data = this.serialize(),
+                    rawHtml = tpl(data),
+                    rendered;
 
             // Re-use nice "noel" trick from LayoutManager
             rendered = this.$el.html(rawHtml).children();
@@ -124,71 +117,69 @@ NS.UI = (function(ns) {
 
     var GridRow = BaseView.extend({
         template: 'row',
-
         events: {
             'click': 'onClick'
         },
-
         initialize: function() {
             BaseView.prototype.initialize.apply(this, arguments);
             this.listenTo(this.model, 'change', this.render);
 
-            this.formater   = new ns.DateFormater();    //  create date formater
+            this.formater = new ns.DateFormater();    //  create date formater
             this.dateFormat = arguments[0].format;      //  get date format from options
         },
+        _getFlatAttrs: function(prefix, values, schema, attrs) {
 
-        _getFlatAttrs: function (prefix, values, schema, attrs) {
-    
-            _.each(schema, function (field, fieldName) {
+            _.each(schema, function(field, fieldName) {
 
-                if (('main' in field) && !field.main) return;
+                if (('main' in field) && !field.main)
+                    return;
                 switch (field.type) {
                     case 'MultiSchema':
                         var schemas = _.result(schema[fieldName], 'schemas');
                         this._getFlatAttrs(
-                            prefix + fieldName + '.',
-                            values,
-                            schemas[attrs[schema[fieldName].selector].id],
-                            attrs[fieldName] || {}
+                                prefix + fieldName + '.',
+                                values,
+                                schemas[attrs[schema[fieldName].selector].id],
+                                attrs[fieldName] || {}
                         );
                         break;
                     case 'NestedModel':
                         this._getFlatAttrs(
-                            prefix + fieldName + '.',
-                            values,
-                            schema[fieldName].model.schema,
-                            attrs[fieldName].attributes
-                        );
+                                prefix + fieldName + '.',
+                                values,
+                                schema[fieldName].model.schema,
+                                attrs[fieldName].attributes
+                                );
                         break;
                     case 'List':
-                        if (Object.keys(attrs[fieldName]).length === 0 ) {
+                        if (Object.keys(attrs[fieldName]).length === 0) {
                             var array = [];
                             _.each(schema[fieldName].model.schema, function(v) {
                                 if ("main" in v) {
                                     if (v['main']) {
-                                        array.push( {} );
+                                        array.push({});
                                     }
                                 } else {
-                                    array.push( {} );
+                                    array.push({});
                                 }
                             });
                             values[fieldName] = array;
                         } else {
                             values[fieldName] = [];
-                            _.each(attrs[fieldName], function (model, idx) {
+                            _.each(attrs[fieldName], function(model, idx) {
                                 var tmp = {};
                                 this._getFlatAttrs(
-                                    prefix + fieldName + '.' + idx + '.',
-                                    tmp,
-                                    schema[fieldName].model.schema,
-                                    attrs[fieldName][idx].attributes
-                                );
+                                        prefix + fieldName + '.' + idx + '.',
+                                        tmp,
+                                        schema[fieldName].model.schema,
+                                        attrs[fieldName][idx].attributes
+                                        );
                                 values[fieldName][idx] = tmp;
                             }, this);
                         }
                         break;
-                    case 'Date':                        
-                        var d = attrs[fieldName];       
+                    case 'Date':
+                        var d = attrs[fieldName];
 
                         if (d !== undefined && _.isDate(new Date(d))) {
                             d = this.formater.format(new Date(d), this.dateFormat);
@@ -201,16 +192,16 @@ NS.UI = (function(ns) {
                 }
             }, this);
         },
-
-        getFlatAttrs: function (model) {
-            if (! model.constructor.schema) { return model.attributes; }
+        getFlatAttrs: function(model) {
+            if (!model.constructor.schema) {
+                return model.attributes;
+            }
             var values = {};
-            
+
             this._getFlatAttrs('', values, model.constructor.schema, model.attributes);
 
             return values;
         },
-
         serialize: function() {
             var viewData = {};
             viewData.attr = this.getFlatAttrs(this.model);
@@ -223,7 +214,6 @@ NS.UI = (function(ns) {
             });
             return viewData;
         },
-
         onClick: function(e) {
             e.preventDefault(); // FIXME: What if the grid row holds button or anchors? or the user want to add click handler on some part of the row?
             this.trigger('selected', this.model);
@@ -232,7 +222,6 @@ NS.UI = (function(ns) {
 
     ns.Grid = BaseView.extend({
         template: 'grid',
-
         events: {
             'click .pagination [data-target]': 'onPage',
             'click .sort-action': 'onSort',
@@ -242,7 +231,6 @@ NS.UI = (function(ns) {
             'reset .filter-form form': 'clearFilter',
             'change .pagination select[name="pagesizes"]': 'onPageRedim'
         },
-
         initialize: function(options) {
             BaseView.prototype.initialize.apply(this, arguments);
             // Config
@@ -258,19 +246,19 @@ NS.UI = (function(ns) {
                 maxIndexButtons: 7
             });
             _.extend(this, _.pick(options, ['sortColumn', 'sortOrder', 'currentSchemaId', 'filters', 'disableFilters', 'size', 'pageSizes', 'pageSize', 'page', 'maxIndexButtons']));
-            if (options.collection) this.setCollection(options.collection);
+            if (options.collection)
+                this.setCollection(options.collection);
 
             this._numberRegexp = new RegExp('^([0-9]+|[0-9]*[\.,][0-9]+)$');
 
             this.dateFormat = options.dateFormat;   //  initialise dateFormat for grid from options arguments
         },
-
         setCollection: function(c) {
-            if (this.collection) this.stopListening(this.collection);
+            if (this.collection)
+                this.stopListening(this.collection);
             this.collection = c;
             this.listenTo(c, 'reset', this.render);
         },
-
         _getSubHeaders: function(schema, prefix) {
             var context = {
                 grid: this,
@@ -281,7 +269,8 @@ NS.UI = (function(ns) {
             };
 
             _.each(schema, function(field, id) {
-                if (('main' in field) && !field.main) return ;
+                if (('main' in field) && !field.main)
+                    return;
                 var header = {
                     id: this.prefix + id,
                     title: field.title || id,
@@ -310,12 +299,14 @@ NS.UI = (function(ns) {
                     case 'Date':
                         if (!this.grid.disableFilters) {
                             var d = new Date(this.grid.filters[this.prefix + id]),
-                                val = (isFinite(d)) ? d.getDate() + '/' + (d.getMonth()+1)  + '/' + d.getFullYear() : undefined;
+                                    val = (isFinite(d)) ? d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear() : undefined;
                             header.filter = {type: field.type, val: val};
                         }
                         break;
                 }
-                if (header.sub.depth > this.subDepth) {this.subDepth = header.sub.depth;}
+                if (header.sub.depth > this.subDepth) {
+                    this.subDepth = header.sub.depth;
+                }
                 sub.headers.push(header);
             }, context);
 
@@ -323,37 +314,39 @@ NS.UI = (function(ns) {
 
             return sub;
         },
-
         getHeaderIterator: function() {
             return _.bind(
-                /*
-                 * Breadth-first tree traversal algorithm
-                 * adapted to insert a step between each row
-                 */
-                function (cbBeforeRow, cbCell, cbAfterRow) {
-                    var queue = [],
-                        cell, row;
-                    // initialize queue with a copy of headers
-                    _.each(this.headers, function(h) {queue.push(h);});
-                    // Iterate over row queue
-                    while (queue.length > 0) {
-                        row = queue, queue = [];
-                        cbBeforeRow(this.depth);
-                        while (cell = row.shift()) {
-                            // Enqueue sub-headers if any
-                            _.each(cell.sub.headers, function(h) {queue.push(h);});
-                            // Process the header cell
-                            cbCell(cell, this.depth);
-                        }
-                        cbAfterRow(this.depth);
-                        this.depth--;
-                    }
+                    /*
+                     * Breadth-first tree traversal algorithm
+                     * adapted to insert a step between each row
+                     */
+                            function(cbBeforeRow, cbCell, cbAfterRow) {
+                                var queue = [],
+                                        cell, row;
+                                // initialize queue with a copy of headers
+                                _.each(this.headers, function(h) {
+                                    queue.push(h);
+                                });
+                                // Iterate over row queue
+                                while (queue.length > 0) {
+                                    row = queue, queue = [];
+                                    cbBeforeRow(this.depth);
+                                    while (cell = row.shift()) {
+                                        // Enqueue sub-headers if any
+                                        _.each(cell.sub.headers, function(h) {
+                                            queue.push(h);
+                                        });
+                                        // Process the header cell
+                                        cbCell(cell, this.depth);
+                                    }
+                                    cbAfterRow(this.depth);
+                                    this.depth--;
+                                }
+                            },
+                            // Bind the tree traversal algorithm to the actual header tree
+                            this._getSubHeaders(this.collection.model.schema, '')
+                            );
                 },
-                // Bind the tree traversal algorithm to the actual header tree
-                this._getSubHeaders(this.collection.model.schema, '')
-            );
-        },
-
         serialize: function() {
             // Default view data
             var pagerData = {
@@ -381,15 +374,16 @@ NS.UI = (function(ns) {
                 pagerData.activeNext = true;
             }
             // Compute a window for indexes
-            pagerData.windowStart = pagerData.page - Math.floor(this.maxIndexButtons/2);
-            pagerData.windowEnd = pagerData.page + Math.floor(this.maxIndexButtons/2) + this.maxIndexButtons % 2 - 1;
+            pagerData.windowStart = pagerData.page - Math.floor(this.maxIndexButtons / 2);
+            pagerData.windowEnd = pagerData.page + Math.floor(this.maxIndexButtons / 2) + this.maxIndexButtons % 2 - 1;
             if (pagerData.windowStart < pagerData.firstPage) {
                 pagerData.windowEnd += pagerData.firstPage - pagerData.windowStart;
                 pagerData.windowStart = pagerData.firstPage;
             }
             if (pagerData.windowEnd > pagerData.lastPage) {
                 var offset = pagerData.windowEnd - pagerData.lastPage;
-                if (pagerData.windowStart > pagerData.firstPage + offset) pagerData.windowStart -= offset;
+                if (pagerData.windowStart > pagerData.firstPage + offset)
+                    pagerData.windowStart -= offset;
                 pagerData.windowEnd = pagerData.lastPage;
             }
             // Append/Prepend dots where necessary
@@ -403,12 +397,13 @@ NS.UI = (function(ns) {
                 pager: pagerData
             };
         },
-
         beforeRender: function() {
             // Clear rows of a previous render
             this.removeViews('table');
             // Add a subview for each grid row
+
             this.collection.each(function(item) {
+                
                 var v = new GridRow({
                     model: item,
                     format: this.dateFormat //  set dateFormat for each GridRow
@@ -426,42 +421,36 @@ NS.UI = (function(ns) {
                 this.addDatePicker(elt);
             }, this));
         },
-
         addDatePicker: function(element) {
             // Can be overridden by users to activate a custom datepicker on date inputs
         },
-
         onPageRedim: function(e) {
             var $select = $(e.target),
-                size = parseInt($select.val());
-            if (! isNaN(size))
+                    size = parseInt($select.val());
+            if (!isNaN(size))
                 this.trigger('pagesize', size);
         },
-
         onPage: function(e) {
             var $pageButton = $(e.target),
-                target = parseInt($pageButton.data('target'));
-            if (! isNaN(target))
+                    target = parseInt($pageButton.data('target'));
+            if (!isNaN(target))
                 this.trigger('page', target);
         },
-
         onNumberInput: function(e) {
             var $input = $(e.target),
-                val = $input.val();
+                    val = $input.val();
             $input.toggleClass('error', val != '' && !this._numberRegexp.test(val));
         },
-
         clearFilter: function(e) {
             var $form = $(e.target);
             this.trigger('unfilter', $form.data('id'));
             $form.find('.error').removeClass('error');
             $form.parents('.filter-form').hide();
         },
-
         addFilter: function(e) {
             e.preventDefault();
             var $form = $(e.target),
-                key = $form.data('id');
+                    key = $form.data('id');
             switch ($form.data('type')) {
                 case 'Text':
                     var val = $form.find('[name="val"]').val();
@@ -477,14 +466,14 @@ NS.UI = (function(ns) {
                     break;
                 case 'Date':
                     var val = $.trim($form.find('[name="val"]').val()),
-                        parts;
-                    if (! /\d{2}\/\d{2}\/\d{4}/.test(val)) {
+                            parts;
+                    if (!/\d{2}\/\d{2}\/\d{4}/.test(val)) {
                         val = '';
                         break;
                     }
                     // Beware of new Date(s), if s is 01/10/2012, it is interpreted as Jan 10, 2012
                     parts = val.split('/')
-                    val = new Date(parts[2], parts[1]-1, parts[0]);
+                    val = new Date(parts[2], parts[1] - 1, parts[0]);
                     if (isFinite(val)) {
                         // Remove TZ offset
                         // FIXME: it should be possible to handle TZ in a clever way, I have to investigate...
@@ -503,22 +492,26 @@ NS.UI = (function(ns) {
                 this.trigger('unfilter', key);
                 $form.find('.error').removeClass('error');
             } else if (val != '') {
-                this.trigger('filter', key, val);
+
+                if ($form.data('type') === 'Text') {
+                    this.trigger('filter', key, val, $form.find(":checked").val());
+                } else {
+                    this.trigger('filter', key, val);
+                }
+
                 $form.find('.error').removeClass('error');
             }
             $form.parents('.filter-form').hide();
         },
-
         toggleFilter: function(e) {
             var form = $(e.target).siblings('.filter-form'),
-                isHidden = form.is(':hidden');
+                    isHidden = form.is(':hidden');
             $('.grid .filter-form').hide(); // Close all open forms (on this column or on other columns)
             if (isHidden) {
                 form.show();
                 form.find('input').first().focus();
             }
         },
-
         onSort: function(e) {
             var $elt = $(e.target);
             var col = $elt.data('id');
@@ -580,6 +573,11 @@ NS.UI = (function(ns) {
                 '                    <div class="filter-form"><form data-type="<%= cell.filter.type %>" data-id="<%= cell.id %>">' +
                 '                        <div>' +
                 '                            <% if (cell.filter.type == "Text") { %>' +
+                '                               <div class="textFilter">' +
+                '                                   <label><input type="radio" name="choose" value="begins"   checked="checked" /> Begins with</label>' +
+                '                                   <label><input type="radio" name="choose" value="contains" <% if (window.location.href.indexOf("contain") > 0) { %> checked="checked" <% } %> /> Contains</label>' +
+                '                                   <label><input type="radio" name="choose" value="ends"     <% if (window.location.href.indexOf("end")     > 0) { %> checked="checked" <% } %> /> Ends by</label>' +
+                '                               </div>' +
                 '                            <input class="span2" type="text" name="val" value="<%= cell.filter.val || "" %>" />' +
                 '                            <% } else if (cell.filter.type == "Number") { %>' +
                 '                            <input class="span2" type="number" name="val" value="<%= cell.filter.val || "" %>" />' +
@@ -624,73 +622,109 @@ NS.UI = (function(ns) {
                 '</div>'
     };
 
+    ns.getUrlParameter = function(name) {
+        var url = (decodeURIComponent(window.location.href)).split('?')[1];
+
+
+        if (url !== undefined) {
+            var res = [];
+            $.map(url.split("&"), function(pair) {
+                var split = pair.split("=");
+                if (split[0] === name) {
+                    if (res[split[0]] === undefined) {
+                        res[split[0]] = [];
+                        res[split[0]].push(split[1]);
+                    } else {
+                        res[split[0]].push(split[1]);
+                    }
+                }
+            });
+            return res[name];
+        } else {
+            return [];
+        }
+    };
+
     ns.DateFormater = function DateFmt() {
-        
-        var lang = (["fr", "en"].indexOf( (navigator.language || navigator.userLanguage) ) > -1) ? (navigator.language || navigator.userLanguage) : "en";
+
+        var lang = (["fr", "en"].indexOf((navigator.language || navigator.userLanguage)) > -1) ? (navigator.language || navigator.userLanguage) : "en";
 
         var month = {
-            "en" : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-            "fr" : ["Jan", "Fev", "Mar", "Avr", "Mai", "Jui", "Juil", "Aou", "Sep", "Oct", "Nov", "Dec"]
-        };    
-        
-        var days = {
-            "en" : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-            "fr" : ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
+            "en": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+            "fr": ["Jan", "Fev", "Mar", "Avr", "Mai", "Jui", "Juil", "Aou", "Sep", "Oct", "Nov", "Dec"]
         };
-        
+
+        var days = {
+            "en": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+            "fr": ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
+        };
+
         var zeroPad = function(number) {
             return ("0" + number).substr(-2, 2);
         };
-        
+
         var dateMarkers = {
-            d : ['getDate',  function(v) { 
-                    return zeroPad(v); 
-            }],
-            m : ['getMonth', function(v) { 
-                return zeroPad(v + 1); 
-            }],
-            n : ['getMonth', function(v) { 
-                return month[lang][v]; 
-            }],
-            w : ['getDay',   function(v) { 
-                return days[lang][v]; 
-            }],
-            y : ['getFullYear'],
+            d: ['getDate', function(v) {
+                    return zeroPad(v);
+                }],
+            m: ['getMonth', function(v) {
+                    return zeroPad(v + 1);
+                }],
+            n: ['getMonth', function(v) {
+                    return month[lang][v];
+                }],
+            w: ['getDay', function(v) {
+                    return days[lang][v];
+                }],
+            y: ['getFullYear'],
             H: ['getHours', function(v) {
                     return zeroPad(v)
-            }],
+                }],
             M: ['getMinutes', function(v) {
                     return zeroPad(v)
-            }],
+                }],
             S: ['getSeconds', function(v) {
                     return zeroPad(v)
-            }],
+                }],
             i: ['toISOString']
         };
-        
+
         var dateFunction = function(date, item) {
-            switch (item) {                
-                case "dd"   : return zeroPad(date.getDate()); break;                
-                case "d"    : return date.getDate(); break;                    
-                case "mm"   : return zeroPad(date.getMonth() + 1); break;                    
-                case "m"    : return (date.getMonth() + 1); break;                    
-                case "yyyy" : return date.getFullYear(); break;                    
-                case "yy"   : return date.getFullYear().toString().substr(2, 2); break;
-            };
+            switch (item) {
+                case "dd"   :
+                    return zeroPad(date.getDate());
+                    break;
+                case "d"    :
+                    return date.getDate();
+                    break;
+                case "mm"   :
+                    return zeroPad(date.getMonth() + 1);
+                    break;
+                case "m"    :
+                    return (date.getMonth() + 1);
+                    break;
+                case "yyyy" :
+                    return date.getFullYear();
+                    break;
+                case "yy"   :
+                    return date.getFullYear().toString().substr(2, 2);
+                    break;
+            }
+            ;
         };
-        
-        this.format = function(date, formatString) {            
+
+        this.format = function(date, formatString) {
             var res = "";
-            
+
             _.each(formatString.split('/'), function(item) {
                 res += dateFunction(date, item) + '/';
             });
-            
+
             return res.substr(0, res.length - 1);
         };
-        
+
     };
-    
+
     return ns;
-    
+
 })(NS.UI || {});
