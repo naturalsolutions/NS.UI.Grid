@@ -229,7 +229,9 @@ NS.UI = (function(ns) {
             'submit .filter-form form': 'addFilter',
             'input .filter-form input[type="number"]': 'onNumberInput',
             'reset .filter-form form': 'clearFilter',
-            'change .pagination select[name="pagesizes"]': 'onPageRedim'
+            'change .pagination select[name="pagesizes"]': 'onPageRedim',
+            'click .dateSection input[name="choose"]' : "onDateFilter",
+            'change .dateSection select' : "onSelect"
         },
         initialize: function(options) {
             BaseView.prototype.initialize.apply(this, arguments);
@@ -269,6 +271,7 @@ NS.UI = (function(ns) {
             };
 
             _.each(schema, function(field, id) {
+                
                 if (('main' in field) && !field.main)
                     return;
                 var header = {
@@ -278,6 +281,7 @@ NS.UI = (function(ns) {
                     order: (this.prefix + id == this.grid.sortColumn) ? this.grid.sortOrder || 'asc' : '',
                     sub: {depth: 0, headers: []}
                 };
+                
                 switch (field.type) {
                     case 'NestedModel':
                     case 'List':
@@ -293,14 +297,55 @@ NS.UI = (function(ns) {
                     case 'Text':
                     case 'Boolean':
                     case 'Number':
-                        if (!this.grid.disableFilters)
-                            header.filter = {type: field.type, val: this.grid.filters[this.prefix + id]};
+                        if (!this.grid.disableFilters) {
+                            var obj = this.grid.filters[this.prefix + id];
+                            header.filter = {
+                                type            : field.type, 
+                                val             : obj !== undefined ? obj["val"] : undefined,
+                                selectedOption  : obj !== undefined ? obj["selectedOption"] : undefined
+                            };
+                        }
                         break;
                     case 'Date':
+                        
                         if (!this.grid.disableFilters) {
-                            var d = new Date(this.grid.filters[this.prefix + id]),
-                                    val = (isFinite(d)) ? d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear() : undefined;
-                            header.filter = {type: field.type, val: val};
+                            
+                            var obj = this.grid.filters[this.prefix + id];
+                            
+                            if (obj !== undefined && obj["selectedOption"] === "between") {
+                                
+                                var valToSplit  = this.grid.filters[this.prefix + id]["val"];
+                                var d           = new Date(valToSplit.split(";")[0]);
+                                var between     = new Date(valToSplit.split(";")[1]);
+                                
+                                //  Check first date
+                                var month       = (d.getMonth() + 1), day = d.getDate();
+                                var val         = (isFinite(d)) ? (day < 10 ? "0" + day : day) + '/' + (month < 10 ? "0" + month : month) + '/' + d.getFullYear() : undefined;
+                                //  Check second date
+                                month           = between.getMonth();
+                                day             = between.getDate();
+                                var valBetween  = (isFinite(between)) ? (day < 10 ? "0" + day : day) + '/' + (month < 10 ? "0" + month : month) + '/' + between.getFullYear() : undefined;
+                                
+                                header.filter = {
+                                    type            : field.type,
+                                    val             : val,
+                                    valBetween      : valBetween,
+                                    selectedOption  : obj !== undefined ? obj["selectedOption"] : undefined
+                                };
+                                
+                            } else {
+                                var value   = this.grid.filters[this.prefix + id] !== undefined ? this.grid.filters[this.prefix + id]["val"] : undefined;
+                                value       = value !== undefined ? value.split(";")[0] : value;
+                                var d       = new Date(value);
+                                var month = (d.getMonth() + 1), day = d.getDate();
+                                var val     = (isFinite(d)) ? (day < 10 ? "0"+day : day) + '/' + (month < 10 ? "0"+month : month) + '/' + d.getFullYear() : undefined;
+                                
+                                header.filter = {
+                                    type: field.type,
+                                    val: val,
+                                    selectedOption: obj !== undefined ? obj["selectedOption"] : undefined
+                                };
+                            }
                         }
                         break;
                 }
@@ -316,37 +361,37 @@ NS.UI = (function(ns) {
         },
         getHeaderIterator: function() {
             return _.bind(
-                    /*
-                     * Breadth-first tree traversal algorithm
-                     * adapted to insert a step between each row
-                     */
-                            function(cbBeforeRow, cbCell, cbAfterRow) {
-                                var queue = [],
-                                        cell, row;
-                                // initialize queue with a copy of headers
-                                _.each(this.headers, function(h) {
-                                    queue.push(h);
-                                });
-                                // Iterate over row queue
-                                while (queue.length > 0) {
-                                    row = queue, queue = [];
-                                    cbBeforeRow(this.depth);
-                                    while (cell = row.shift()) {
-                                        // Enqueue sub-headers if any
-                                        _.each(cell.sub.headers, function(h) {
-                                            queue.push(h);
-                                        });
-                                        // Process the header cell
-                                        cbCell(cell, this.depth);
-                                    }
-                                    cbAfterRow(this.depth);
-                                    this.depth--;
-                                }
-                            },
-                            // Bind the tree traversal algorithm to the actual header tree
-                            this._getSubHeaders(this.collection.model.schema, '')
-                            );
+                /*
+                 * Breadth-first tree traversal algorithm
+                 * adapted to insert a step between each row
+                 */
+                function(cbBeforeRow, cbCell, cbAfterRow) {
+                    var queue = [],
+                            cell, row;
+                    // initialize queue with a copy of headers
+                    _.each(this.headers, function(h) {
+                        queue.push(h);
+                    });
+                    // Iterate over row queue
+                    while (queue.length > 0) {
+                        row = queue, queue = [];
+                        cbBeforeRow(this.depth);
+                        while (cell = row.shift()) {
+                            // Enqueue sub-headers if any
+                            _.each(cell.sub.headers, function(h) {
+                                queue.push(h);
+                            });
+                            // Process the header cell
+                            cbCell(cell, this.depth);
+                        }
+                        cbAfterRow(this.depth);
+                        this.depth--;
+                    }
                 },
+                // Bind the tree traversal algorithm to the actual header tree
+                this._getSubHeaders(this.collection.model.schema, '')
+            );
+        },
         serialize: function() {
             // Default view data
             var pagerData = {
@@ -465,24 +510,84 @@ NS.UI = (function(ns) {
                         val = '';
                     break;
                 case 'Date':
-                    var val = $.trim($form.find('[name="val"]').val()),
-                            parts;
-                    if (!/\d{2}\/\d{2}\/\d{4}/.test(val)) {
-                        val = '';
+
+                    if ($form.find('input[type="radio"]:checked').val() !== undefined) {    //  check if an option is choosen
+                        
+                        var val = $.trim($form.find('[name="val"]').val()), parts                       
+                        
+                        if ($form.find(".valBetween").is(":visible")) {
+                            var firstVal = val, secondVal = $.trim($form.find(".valBetween").val());
+                            
+                            if (!/\d{2}\/\d{2}\/\d{4}/.test(secondVal) || !/\d{2}\/\d{2}\/\d{4}/.test(firstVal)) {
+                                secondVal = '';
+                                break;
+                            }
+
+                            parts       = firstVal.split('/');
+                            firstVal    = new Date(parts[2], parts[1] - 1, parts[0]);
+                            parts       = secondVal.split('/');
+                            secondVal   = new Date(parts[2], parts[1] - 1, parts[0]);
+                            
+                            if (firstVal - secondVal <= 0 && isFinite(secondVal) && isFinite(firstVal)) {
+                                secondVal.setMinutes(secondVal.getMinutes() - secondVal.getTimezoneOffset());
+                                val         += ";" + secondVal.toISOString();
+                            } else {
+                                val = "";
+                                break;
+                            }
+                        } else {
+                            if (!/\d{2}\/\d{2}\/\d{4}/.test(val)) {
+                                val = '';
+                                break;
+                            }
+                            // Beware of new Date(s), if s is 01/10/2012, it is interpreted as Jan 10, 2012
+                            parts   = val.split('/')
+                            val     = new Date(parts[2], parts[1] - 1, parts[0]);
+                            if (isFinite(val)) {
+                                // Remove TZ offset
+                                // FIXME: it should be possible to handle TZ in a clever way, I have to investigate...
+                                // Note that the problem comes from the server data which pretend to be UTC but is not
+                                val.setMinutes(val.getMinutes() - val.getTimezoneOffset());
+                                val = val.toISOString();
+                            } else {
+                                val = '';
+                            }
+                        }
+                        
+                    } else if ($form.find("select").val() !== "") {
+                        var selectedValue = $form.find("select").val();
+                        var today = new Date();
+                        today.setHours(1, 0, 0, 0, 0);
+                        switch (selectedValue) {
+                            case "lastYear" : 
+                                var lastYear = new Date(today);
+                                lastYear.setFullYear( lastYear.getFullYear() - 1);
+                                val = lastYear.toISOString() + ";" + today.toISOString();
+                            break;
+                            case "lastWeek" : 
+                                    var lastWeek = new Date(today);
+                                    lastWeek.setDate( lastWeek.getDate() - 7);
+                                    val = lastWeek.toISOString() + ";" + today.toISOString();
+                                break;
+                            case "lastMonth" : 
+                                var lastMonth = new Date(today);
+                                lastMonth.setMonth( lastMonth.getMonth() - 1);
+                                val = lastMonth.toISOString() + ";" + today.toISOString();
+                                break;
+                            case "today" : 
+                                val = today.toISOString();
+                                break;
+                            case "yesterday" : 
+                                today.setDate( today.getDate() - 1);
+                                val = today.toISOString();
+                                break;
+                        }
+                    } else {
+                        val = "";
                         break;
                     }
-                    // Beware of new Date(s), if s is 01/10/2012, it is interpreted as Jan 10, 2012
-                    parts = val.split('/')
-                    val = new Date(parts[2], parts[1] - 1, parts[0]);
-                    if (isFinite(val)) {
-                        // Remove TZ offset
-                        // FIXME: it should be possible to handle TZ in a clever way, I have to investigate...
-                        // Note that the problem comes from the server data which pretend to be UTC but is not
-                        val.setMinutes(val.getMinutes() - val.getTimezoneOffset());
-                        val = val.toISOString();
-                    } else {
-                        val = '';
-                    }
+                    
+                    
                     break;
                 case 'Boolean':
                     var val = $form.find('[name="val"]:checked').val() || '';
@@ -492,8 +597,8 @@ NS.UI = (function(ns) {
                 this.trigger('unfilter', key);
                 $form.find('.error').removeClass('error');
             } else if (val != '') {
-
-                if ($form.data('type') === 'Text') {
+                //  _.contains( ["Text", "Date"], $form.data('type'));
+                if ($form.data('type') === 'Text' || $form.data('type') === "Date") {
                     this.trigger('filter', key, val, $form.find(":checked").val());
                 } else {
                     this.trigger('filter', key, val);
@@ -523,6 +628,37 @@ NS.UI = (function(ns) {
             } else { // Not sorted yet, switch to ascending order
                 this.trigger('sort', col, 'asc');
             }
+        },
+                
+        onDateFilter: function(event) {
+            //  for date filter event      
+            var form = $(event.target).closest("form");
+            
+            $(form).find("input[name='val']").show();
+            
+            if ($(event.target).val() === "between") {
+                if (!$(form).find(".valBetween").is(":visible")) {
+                    $(form).find("#pBetween").show();
+                    $(form).find(".valBetween").show();
+                }
+            } else {
+                $(form).find("#pBetween").hide();
+                $(form).find(".valBetween").hide();
+                $(form).find(".valBetween").val("");
+            }
+        },
+                
+        onSelect : function(event) {
+            var form = $(event.target).closest("form");
+            
+            //  hide inputs for other choices
+            $(form).find("input[name='val']").hide();
+            $(form).find("input[name='val']").val("");
+            $(form).find("#pBetween").hide();
+            $(form).find(".valBetween").hide();
+            $(form).find(".valBetween").val("");
+            
+            $(form).find("input[type='radio']").prop("checked", false);
         }
     });
 
@@ -568,28 +704,51 @@ NS.UI = (function(ns) {
                 '            %><th<%= colspan %><%= rowspan %>><div>' +
                 '                <%= cell.title %>' +
                 '                <% if (cell.sortable) { %><i class="sort-action <%= iconClass %>" data-order="<%= cell.order %>" data-id="<%= cell.id %>" title="Sort"></i><% } %>' +
-                '                <% if (cell.filter) { %>' +
+                '                <% if (cell.filter) { %> ' +
                 '                    <i class="filter-action icon-filter<%= (cell.filter.val ? " active" : "" ) %>" title="Filter"></i>' +
                 '                    <div class="filter-form"><form data-type="<%= cell.filter.type %>" data-id="<%= cell.id %>">' +
                 '                        <div>' +
                 '                            <% if (cell.filter.type == "Text") { %>' +
-                '                               <div class="textFilter">' +
-                '                                   <label><input type="radio" name="choose" value="begins"   checked="checked" /> Begins with</label>' +
-                '                                   <label><input type="radio" name="choose" value="contains" <% if (window.location.href.indexOf("contain") > 0) { %> checked="checked" <% } %> /> Contains</label>' +
-                '                                   <label><input type="radio" name="choose" value="ends"     <% if (window.location.href.indexOf("end")     > 0) { %> checked="checked" <% } %> /> Ends by</label>' +
+                
+                '                               <div class="filterSection">' +
+                '                                   <label><input type="radio" name="choose" value="same"   checked="checked" /> Exact match</label>' +
+                '                                   <label><input type="radio" name="choose" value="begins" <% if (cell.filter.selectedOption === "begins") { %> checked="checked" <% } %> /> Begins with</label>' +
+                '                                   <label><input type="radio" name="choose" value="contains" <% if (cell.filter.selectedOption === "contains") { %> checked="checked" <% } %> /> Contains</label>' +
+                '                                   <label><input type="radio" name="choose" value="ends"     <% if (cell.filter.selectedOption === "ends")     { %> checked="checked" <% } %> /> Ends by</label>' +
                 '                               </div>' +
+                
                 '                            <input class="span2" type="text" name="val" value="<%= cell.filter.val || "" %>" />' +
                 '                            <% } else if (cell.filter.type == "Number") { %>' +
                 '                            <input class="span2" type="number" name="val" value="<%= cell.filter.val || "" %>" />' +
                 '                            <% } else if (cell.filter.type == "Date") { %>' +
-                '                            <input class="span2" type="date" name="val" value="<%= cell.filter.val || "" %>" />' +
+                
+                '                               <div class="filterSection dateSection">' +
+                '                                   <label><input type="radio" name="choose" value="same"    <% if (cell.filter.selectedOption === "same")   { %> checked="checked" <% } %> /> Exact match  </label>' +
+                '                                   <label><input type="radio" name="choose" value="before"  <% if (cell.filter.selectedOption === "before") { %> checked="checked" <% } %> /> Before       </label>' +                
+                '                                   <label><input type="radio" name="choose" value="after"   <% if (cell.filter.selectedOption === "after")  { %> checked="checked" <% } %> /> After        </label>' +
+                '                                   <label><input type="radio" name="choose" value="between" <% if (cell.filter.selectedOption === "between"){ %> checked="checked" <% } %> /> Between      </label>' +
+                '                                   <select name="choose">' + 
+                '                                       <optgroup label="Predefined options">' + 
+                '                                           <option value="" class="hide"></option>'+
+                '                                           <option value="lastYear"  <% if (cell.filter.selectedOption === "lastYear")   { %> selected="selected" <% } %> >Last year   </option>' +
+                '                                           <option value="lastMonth" <% if (cell.filter.selectedOption === "lastMonth")  { %> selected="selected" <% } %> >Last Month  </option>' +
+                '                                           <option value="lastWeek"  <% if (cell.filter.selectedOption === "lastWeek")   { %> selected="selected" <% } %> >Last week   </option>' +
+                '                                           <option value="yesterday" <% if (cell.filter.selectedOption === "yesterday")  { %> selected="selected" <% } %> >Yesterday   </option>' +
+                '                                           <option value="today"     <% if (cell.filter.selectedOption === "today")      { %> selected="selected" <% } %> >Today       </option>' +
+                '                                       </optgroup>' +
+                '                                   </select>'+
+                '                               </div> ' +
+                
+                '                            <input class="span2 <% if(!_.contains( ["before", "after", "between"], cell.filter.selectedOption)) { %> hide <% } %>" type="date" name="val" value="<%= cell.filter.val || "" %>" />' +
+                '                            <label id="pBetween" class="<% if (cell.filter.selectedOption !== "between")   { %>hide <% } %>">And</label>' +
+                '                            <input class="span2 <% if (cell.filter.selectedOption !== "between")   { %>hide <% } %> valBetween" type="date" name="valBetween" value="<%= cell.filter.valBetween || "" %>" />' +
                 '                            <% } else if (cell.filter.type == "Boolean") { %>' +
                 '                            <div class="span2 filter-form-boolean">' +
                 '                            <label class="radio inline"><input type="radio" name="val" value="true"<%= cell.filter.val == "true" ? " checked" : "" %> />Yes</label>' +
                 '                            <label class="radio inline"><input type="radio" name="val" value="false"<%= cell.filter.val == "false" ? " checked" : "" %> />No</label>' +
                 '                            </div>' +
                 '                            <% } %>' +
-                '                            <button class="btn btn-primary" type="submit">Filter</button>' +
+                '                            <br/><button class="btn btn-primary" type="submit">Filter</button>' +
                 '                            <button class="btn" type="reset">Clear</button>' +
                 '                        </div>' +
                 '                    </form></div>' +
