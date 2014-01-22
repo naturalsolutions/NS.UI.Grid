@@ -242,12 +242,13 @@ NS.UI = (function(ns) {
                 filters: {},
                 disableFilters: false,
                 size: 0,
+                pagerPosition: 'both',
                 pageSizes: [10, 15, 25, 50],
                 pageSize: 10,
                 page: 1,
                 maxIndexButtons: 7
             });
-            _.extend(this, _.pick(options, ['sortColumn', 'sortOrder', 'currentSchemaId', 'filters', 'disableFilters', 'size', 'pageSizes', 'pageSize', 'page', 'maxIndexButtons']));
+            _.extend(this, _.pick(options, ['sortColumn', 'sortOrder', 'currentSchemaId', 'filters', 'disableFilters', 'size', 'pageSizes', 'pageSize', 'page', 'maxIndexButtons', 'pagerPosition']));
             if (options.collection)
                 this.setCollection(options.collection);
 
@@ -395,6 +396,7 @@ NS.UI = (function(ns) {
         serialize: function() {
             // Default view data
             var pagerData = {
+                position: this.pagerPosition,
                 firstPage: 1,
                 lastPage: Math.ceil(this.size / this.pageSize),
                 page: this.page,
@@ -694,6 +696,29 @@ NS.UI = (function(ns) {
                 '    %></tr><%' +
                 '}%></tbody>',
         'grid': '<div class="grid">' +
+                '<% if (data.pager.position != "bottom") { %>' +
+                '<div class="pagination pagination-right">' +
+                '<div class="pagination-stats">' +
+                '<%= (data.pager.totalCount > 1) ? data.pager.totalCount + " items" : data.pager.totalCount + " item" %>,' +
+                '<%= (data.pager.lastPage > 1) ? data.pager.lastPage + " pages" : data.pager.lastPage + " page" %>' +
+                '</div>' +
+                '<ul>' +
+                '<li class="<% if (!data.pager.activeFirst) { %>disabled"><span>&lt;&lt;</span><% } else { %>"><span data-target="<%= data.pager.firstPage %>">&lt;&lt;</span><% } %></li>' +
+                '<li class="<% if (!data.pager.activePrevious) { %>disabled"><span>&lt;</span><% } else { %>"><span data-target="<%= data.pager.page - 1 %>">&lt;</span><% } %></li>' +
+                '<% if (data.pager.showLeftDots) { %><li><span>...</span></li><% } %>' +
+                '<% for (var i=data.pager.windowStart; i<=data.pager.windowEnd; i++) { if (i == data.pager.page) { %><li class="active"><span><%= i %></span></li><% } else { %><li><span data-target="<%= i %>"><%= i %></span></li><% }} %>' +
+                '<% if (data.pager.showRightDots) { %><li><span>...</span></li><% } %>' +
+                '<li class="<% if (!data.pager.activeNext) { %>disabled"><span>&gt;</span><% } else { %>"><span data-target="<%= data.pager.page + 1 %>">&gt;</span><% } %></li>' +
+                '<li class="<% if (!data.pager.activeLast) { %>disabled"><span>&gt;&gt;</span><% } else { %>"><span data-target="<%= data.pager.lastPage %>">&gt;&gt;</span><% } %></li>' +
+                '</ul>' +
+                '<span id="pagesize-selector">' +
+                '<select name="pagesizes">' +
+                '    <% for (var i=0; i<data.pageSizes.length; i++) { %><option<% if (data.pageSizes[i] == data.pageSize) { %> selected="selected"<% } %>><%= data.pageSizes[i] %></option><% } %>' +
+                '</select>' +
+                'rows per page' +
+                '</span>' +
+                '</div>' +
+                '<% } %>' +
                 '<table class="table table-bordered">' +
                 '    <thead><% data.headerIterator(' +
                 '        function (depth) {%><tr><%},' +
@@ -757,6 +782,7 @@ NS.UI = (function(ns) {
                 '        },' +
                 '        function (depth) {%></tr><%}) %></thead>' +
                 '</table>' +
+                '<% if (data.pager.position != "top") { %>' +
                 '<div class="pagination pagination-right">' +
                 '<div class="pagination-stats">' +
                 '<%= (data.pager.totalCount > 1) ? data.pager.totalCount + " items" : data.pager.totalCount + " item" %>,' +
@@ -778,6 +804,7 @@ NS.UI = (function(ns) {
                 'rows per page' +
                 '</span>' +
                 '</div>' +
+                '<% } %>' +
                 '</div>'
     };
 
