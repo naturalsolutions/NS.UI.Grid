@@ -808,29 +808,6 @@ NS.UI = (function(ns) {
                 '</div>'
     };
 
-    ns.getUrlParameter = function(name) {
-        var url = (decodeURIComponent(window.location.href)).split('?')[1];
-
-
-        if (url !== undefined) {
-            var res = [];
-            $.map(url.split("&"), function(pair) {
-                var split = pair.split("=");
-                if (split[0] === name) {
-                    if (res[split[0]] === undefined) {
-                        res[split[0]] = [];
-                        res[split[0]].push(split[1]);
-                    } else {
-                        res[split[0]].push(split[1]);
-                    }
-                }
-            });
-            return res[name];
-        } else {
-            return [];
-        }
-    };
-
     ns.DateFormater = function DateFmt() {
 
         var lang = (["fr", "en"].indexOf((navigator.language || navigator.userLanguage)) > -1) ? (navigator.language || navigator.userLanguage) : "en";
