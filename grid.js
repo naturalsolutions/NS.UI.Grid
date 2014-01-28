@@ -7,7 +7,90 @@ var NS = window.NS || {};
 NS.UI = (function(ns) {
     "use strict";
 
-    var tplCache = {}, BaseView;
+    var tplCache = {},
+        BaseView,
+        DateFormater = function() {
+            var lang = (["fr", "en"].indexOf( (navigator.language || navigator.userLanguage) ) > -1) ? (navigator.language || navigator.userLanguage) : "en";
+            var month = {
+                "en" : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+                "fr" : ["Jan", "Fev", "Mar", "Avr", "Mai", "Jui", "Juil", "Aou", "Sep", "Oct", "Nov", "Dec"]
+            };
+             var days = {
+                "en" : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+                "fr" : ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
+            };
+            var zeroPad = function(number) {
+                return ("0" + number).substr(-2, 2);
+            };
+            var dateFunction = function(date, item) {
+                switch (item) {
+                    case "dd"   : return zeroPad(date.getDate()); break;
+                    case "d"    : return date.getDate(); break;
+                    case "mm"   : return zeroPad(date.getMonth() + 1); break;
+                    case "m"    : return (date.getMonth() + 1); break;
+                    case "yyyy" : return date.getFullYear(); break;
+                    case "yy"   : return date.getFullYear().toString().substr(2, 2); break;
+                };
+            };
+            /**
+             * Return the date in string format, ex : 2014-01-23T00:00:00.000Z to 23/01/2014 with dd/mm/yyyy format
+             * @param   {Dare}      date            date object
+             * @param   {string}    formatString    format for conversion
+             * @returns {string}    date formatted in string
+             */
+            this.format = function(date, formatString) {
+                var res = "";
+
+                _.each( formatString.split('/'), function(item) {
+                    res += dateFunction(date, item) + '/';
+                });
+
+                return res.substr(0, res.length - 1);
+            };
+            /**
+             * Return an object date from date in string and format, ex : 23/01/2014 with dd/mm/yyyy 2014-01-23T00:00:00.000Z
+             * @param   {string} strDate    the date in string
+             * @param   {string} strFormat  the date format
+             * @returns {Date}   date in object
+             */
+            this.getDate = function(strDate, strFormat) {
+
+                var dateArray   = {};
+                var dateSplit   = strDate.split('/');
+                var formatSplit = strFormat.split("/");
+
+                _.each(dateSplit, function(value, key) {
+                    dateArray[ formatSplit[key] ] = dateSplit[key];
+                });
+
+                var d = new Date(), month, day, year;
+
+                //  setDate
+                if ("dd" in dateArray) {
+                    day = parseInt(dateArray['dd']);
+                } else if ("d" in dateArray) {
+                    day = parseInt(dateArray['d']);
+                }
+                //  setMonth
+                if ("mm" in dateArray) {
+                    month = parseInt(dateArray['mm']);
+                } else if ("m" in dateArray) {
+                    month = parseInt(dateArray['m']);
+                }
+                //  setYear
+                if ("yyyy" in dateArray) {
+                    year = parseInt(dateArray['yyyy']);
+                } else if ("yy" in dateArray) {
+                    year = parseInt(dateArray['yy']);
+                }
+                d = new Date(year, month - 1, day)
+                if (d.getFullYear() < 2000) {
+                    d.setFullYear(year + 2000);
+                }
+                d.setHours(1, 0, 0, 0);
+                return d;
+            };
+        };
 
     /*
      * Utility class holding rendering process and sub-view management.
@@ -120,12 +203,12 @@ NS.UI = (function(ns) {
         events: {
             'click': 'onClick'
         },
-        initialize: function() {
+        initialize: function(options) {
             BaseView.prototype.initialize.apply(this, arguments);
             this.listenTo(this.model, 'change', this.render);
 
-            this.formater = new ns.DateFormater();    //  create date formater
-            this.dateFormat = arguments[0].format;      //  get date format from options
+            this.formater = new DateFormater();    //  create date formater
+            this.dateFormat = options.format;      //  get date format from options
         },
         _getFlatAttrs: function(prefix, values, schema, attrs) {
 
@@ -238,6 +321,7 @@ NS.UI = (function(ns) {
             options = options || {};
             _.defaults(options, {
                 currentSchemaId: '',
+                dateFormat: 'dd/mm/yyyy',
                 filters: {},
                 disableFilters: false,
                 size: 0,
@@ -247,13 +331,11 @@ NS.UI = (function(ns) {
                 page: 1,
                 maxIndexButtons: 7
             });
-            _.extend(this, _.pick(options, ['sortColumn', 'sortOrder', 'currentSchemaId', 'filters', 'disableFilters', 'size', 'pageSizes', 'pageSize', 'page', 'maxIndexButtons', 'pagerPosition']));
+            _.extend(this, _.pick(options, ['sortColumn', 'sortOrder', 'currentSchemaId', 'filters', 'disableFilters', 'size', 'pageSizes', 'pageSize', 'page', 'maxIndexButtons', 'pagerPosition', 'dateFormat']));
             if (options.collection)
                 this.setCollection(options.collection);
 
             this._numberRegexp = new RegExp('^([0-9]+|[0-9]*[\.,][0-9]+)$');
-
-            this.dateFormat = options.dateFormat;   //  initialise dateFormat for grid from options arguments
         },
         setCollection: function(c) {
             if (this.collection)
@@ -794,89 +876,6 @@ NS.UI = (function(ns) {
                 '</div>' +
                 '<% } %>' +
                 '</div>'
-    };
-
-    ns.DateFormater = function DateFmt() {
-        var lang = (["fr", "en"].indexOf( (navigator.language || navigator.userLanguage) ) > -1) ? (navigator.language || navigator.userLanguage) : "en";
-        var month = {
-            "en" : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-            "fr" : ["Jan", "Fev", "Mar", "Avr", "Mai", "Jui", "Juil", "Aou", "Sep", "Oct", "Nov", "Dec"]
-        };   
-         var days = {
-            "en" : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-            "fr" : ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
-        };        
-        var zeroPad = function(number) {
-            return ("0" + number).substr(-2, 2);
-        };        
-        var dateFunction = function(date, item) {
-            switch (item) {                
-                case "dd"   : return zeroPad(date.getDate()); break;
-                case "d"    : return date.getDate(); break;
-                case "mm"   : return zeroPad(date.getMonth() + 1); break;
-                case "m"    : return (date.getMonth() + 1); break;
-                case "yyyy" : return date.getFullYear(); break;
-                case "yy"   : return date.getFullYear().toString().substr(2, 2); break;
-            };
-        };        
-        /**
-         * Return the date in string format, ex : 2014-01-23T00:00:00.000Z to 23/01/2014 with dd/mm/yyyy format
-         * @param   {Dare}      date            date object
-         * @param   {string}    formatString    format for conversion
-         * @returns {string}    date formatted in string
-         */
-        this.format = function(date, formatString) {            
-            var res = "";
-            
-            _.each( formatString.split('/'), function(item) {
-                res += dateFunction(date, item) + '/';
-            });
-            
-            return res.substr(0, res.length - 1);                       
-        };
-        /**
-         * Return an object date from date in string and format, ex : 23/01/2014 with dd/mm/yyyy 2014-01-23T00:00:00.000Z
-         * @param   {string} strDate    the date in string
-         * @param   {string} strFormat  the date format
-         * @returns {Date}   date in object
-         */
-        this.getDate = function(strDate, strFormat) {
-
-            var dateArray   = {};
-            var dateSplit   = strDate.split('/');
-            var formatSplit = strFormat.split("/");
-
-            _.each(dateSplit, function(value, key) {
-                dateArray[ formatSplit[key] ] = dateSplit[key];
-            });
-                        
-            var d = new Date(), month, day, year;
-
-            //  setDate
-            if ("dd" in dateArray) {
-                day = parseInt(dateArray['dd']);
-            } else if ("d" in dateArray) {
-                day = parseInt(dateArray['d']);
-            }
-            //  setMonth
-            if ("mm" in dateArray) {
-                month = parseInt(dateArray['mm']);
-            } else if ("m" in dateArray) {
-                month = parseInt(dateArray['m']);
-            }            
-            //  setYear
-            if ("yyyy" in dateArray) {
-                year = parseInt(dateArray['yyyy']);
-            } else if ("yy" in dateArray) {
-                year = parseInt(dateArray['yy']);
-            }
-            d = new Date(year, month - 1, day)
-            if (d.getFullYear() < 2000) {
-                d.setFullYear(year + 2000);
-            }
-            d.setHours(1, 0, 0, 0);            
-            return d;
-        };
     };
 
     return ns;
