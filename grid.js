@@ -351,7 +351,8 @@ NS.UI = (function(ns) {
             }, sub = {
                 headers: []
             };
-
+            var format = this.dateFormat; // allow to know the date format in the each 
+            
             _.each(schema, function(field, id) {
                 
                 if (('main' in field) && !field.main)
@@ -381,52 +382,44 @@ NS.UI = (function(ns) {
                     case 'Number':
                         if (!this.grid.disableFilters) {
                             var obj = this.grid.filters[this.prefix + id];
-                            header.filter = {
-                                type            : field.type, 
-                                val             : obj !== undefined ? obj["val"] : undefined,
-                                selectedOption  : obj !== undefined ? obj["selectedOption"] : undefined
-                            };
+                            if (obj == undefined) {
+                                header.filter = {type: field.type, val: undefined, selectedOption: undefined};
+                            } else {
+                                var value, opt;
+                                if (obj.indexOf(":") > 1) {
+                                    var split = obj.split(":"), opt = split[0];
+                                    split.shift()
+                                    value = split.join("");
+                                } else {
+                                    value = obj;
+                                    opt = undefined;
+                                }
+                                header.filter = { type: field.type, val: value, selectedOption: opt };
+                            }
                         }
                         break;
-                    case 'Date':
-                        
-                        if (!this.grid.disableFilters) {
+                    case 'Date':                        
+                        if (!this.grid.disableFilters) {                            
+                            var obj = this.grid.filters[this.prefix + id], formater = new ns.DateFormater();
                             
-                            var obj = this.grid.filters[this.prefix + id];
-                            
-                            if (obj !== undefined && obj["selectedOption"] === "between") {
-                                
-                                var valToSplit  = this.grid.filters[this.prefix + id]["val"];
-                                var d           = new Date(valToSplit.split(";")[0]);
-                                var between     = new Date(valToSplit.split(";")[1]);
-                                
-                                //  Check first date
-                                var month       = (d.getMonth() + 1), day = d.getDate();
-                                var val         = (isFinite(d)) ? (day < 10 ? "0" + day : day) + '/' + (month < 10 ? "0" + month : month) + '/' + d.getFullYear() : undefined;
-                                //  Check second date
-                                month           = between.getMonth();
-                                day             = between.getDate();
-                                var valBetween  = (isFinite(between)) ? (day < 10 ? "0" + day : day) + '/' + (month < 10 ? "0" + month : month) + '/' + between.getFullYear() : undefined;
-                                
-                                header.filter = {
-                                    type            : field.type,
-                                    val             : val,
-                                    valBetween      : valBetween,
-                                    selectedOption  : obj !== undefined ? obj["selectedOption"] : undefined
-                                };
-                                
-                            } else {
-                                var value   = this.grid.filters[this.prefix + id] !== undefined ? this.grid.filters[this.prefix + id]["val"] : undefined;
-                                value       = value !== undefined ? value.split(";")[0] : value;
-                                var d       = new Date(value);
-                                var month = (d.getMonth() + 1), day = d.getDate();
-                                var val     = (isFinite(d)) ? (day < 10 ? "0"+day : day) + '/' + (month < 10 ? "0"+month : month) + '/' + d.getFullYear() : undefined;
+                            if (obj !== undefined) {
+                                //  Split for separator option (between, after, ...) and value(s)
+                                var valToSplit = obj.split(":"), opt = valToSplit[0];
+                                valToSplit.shift();
+                                valToSplit = valToSplit.join(":");
+                                var value = valToSplit.split(";");
                                 
                                 header.filter = {
                                     type: field.type,
-                                    val: val,
-                                    selectedOption: obj !== undefined ? obj["selectedOption"] : undefined
-                                };
+                                    val: formater.format(new Date(value[0]), format),
+                                    selectedOption: opt
+                                };                                
+                                if (opt === "between") {
+                                    //  Add the second value
+                                    header.filter["valBetween"] = formater.format(new Date(value[1]), format)
+                                }
+                            } else {
+                                header.filter = { type: field.type, val: undefined, selectedOption: undefined };
                             }
                         }
                         break;
@@ -593,7 +586,6 @@ NS.UI = (function(ns) {
                         val = '';
                     break;
                 case 'Date':
-                    
                     var options = $form.find('input[type="radio"]:checked').val();
                     
                     if (_.contains(["same", "between", "after", "before"], options)) {
@@ -602,19 +594,19 @@ NS.UI = (function(ns) {
                         
                         if (options === "between") {
                             var firstVal = val, secondVal = $.trim($form.find(".valBetween").val());        
-                            if (!/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(secondVal) || !/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(firstVal)) {
+                            if (!/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(secondVal) || !/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(firstVal)) {                                
                                 val = '';
                                 break;
                             }
                             //  to check
-                            parts       = firstVal.split('/');
-                            firstVal    = new Date(year, parts[1] - 1, parts[0]);
-                            parts       = secondVal.split('/');
-                            secondVal   = new Date(year, parts[1] - 1, parts[0]);
+                            var formater = new ns.DateFormater();
+
+                            firstVal    = formater.getDate(firstVal, this.dateFormat);
+                            secondVal   = formater.getDate(secondVal, this.dateFormat);
                             
                             if (firstVal - secondVal <= 0 && isFinite(secondVal) && isFinite(firstVal)) {
                                 secondVal.setMinutes(secondVal.getMinutes() - secondVal.getTimezoneOffset());
-                                val         += ";" + secondVal.toISOString();
+                                val = firstVal.toISOString() + ";" + secondVal.toISOString();
                             } else {
                                 val = "";
                                 break;
@@ -625,7 +617,7 @@ NS.UI = (function(ns) {
                                 break;
                             }
                             // Beware of new Date(s), if s is 01/10/2012, it is interpreted as Jan 10, 2012
-                            parts   = val.split('/');
+                            /*parts   = val.split('/');
                             var year = (parts[2].length < 4) ? parseInt(parts[2]) + 2000 : parts[2];
                             val     = new Date(parts[2], parts[1] - 1, parts[0]);
                             if (isFinite(val)) {
@@ -636,7 +628,7 @@ NS.UI = (function(ns) {
                                 val = val.toISOString();
                             } else {
                                 val = '';
-                            }
+                            }*/
                         }
                         
                     } else {
