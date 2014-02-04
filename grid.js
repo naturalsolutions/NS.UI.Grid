@@ -764,8 +764,8 @@ NS.UI = (function(ns) {
                 '<% if (data.pager.position != "bottom") { %>' +
                 '<div class="pagination pagination-right">' +
                 '<div class="pagination-stats">' +
-                '<%= (data.pager.totalCount > 1) ? data.pager.totalCount + " items" : data.pager.totalCount + " item" %>,' +
-                '<%= (data.pager.lastPage > 1) ? data.pager.lastPage + " pages" : data.pager.lastPage + " page" %>' +
+                '<em><%= (data.pager.totalCount > 1) ? data.pager.totalCount + "</em> items" : data.pager.totalCount + "</em> item" %>, ' +
+                '<em><%= (data.pager.lastPage > 1) ? data.pager.lastPage + "</em> pages" : data.pager.lastPage + "</em> page" %>' +
                 '</div>' +
                 '<ul>' +
                 '<li class="<% if (!data.pager.activeFirst) { %>disabled"><span>&lt;&lt;</span><% } else { %>"><span data-target="<%= data.pager.firstPage %>">&lt;&lt;</span><% } %></li>' +
@@ -846,8 +846,8 @@ NS.UI = (function(ns) {
                 '<% if (data.pager.position != "top") { %>' +
                 '<div class="pagination pagination-right">' +
                 '<div class="pagination-stats">' +
-                '<%= (data.pager.totalCount > 1) ? data.pager.totalCount + " items" : data.pager.totalCount + " item" %>,' +
-                '<%= (data.pager.lastPage > 1) ? data.pager.lastPage + " pages" : data.pager.lastPage + " page" %>' +
+                '<em><%= (data.pager.totalCount > 1) ? data.pager.totalCount + "</em> items" : data.pager.totalCount + "</em> item" %>, ' +
+                '<em><%= (data.pager.lastPage > 1) ? data.pager.lastPage + "</em> pages" : data.pager.lastPage + "</em> page" %>' +
                 '</div>' +
                 '<ul>' +
                 '<li class="<% if (!data.pager.activeFirst) { %>disabled"><span>&lt;&lt;</span><% } else { %>"><span data-target="<%= data.pager.firstPage %>">&lt;&lt;</span><% } %></li>' +
