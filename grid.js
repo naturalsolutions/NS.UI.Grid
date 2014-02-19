@@ -589,17 +589,17 @@ NS.UI = (function(ns) {
                     
                     if (_.contains(["same", "between", "after", "before"], options)) {
                         //  options with value
-                        var val = $.trim($form.find('[name="val"]').val()), parts;
+                        var val = $.trim($form.find('[name="val"]').val()),
+                            parts,
+                            formater = new ns.DateFormater();;
                         
                         if (options === "between") {
-                            var firstVal = val, secondVal = $.trim($form.find(".valBetween").val());        
-                            if (!/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(secondVal) || !/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(firstVal)) {                                
+                            var firstVal = val, secondVal = $.trim($form.find(".valBetween").val());
+                            if (!/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(secondVal) || !/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(firstVal)) {
                                 val = '';
                                 break;
                             }
                             //  to check
-                            var formater = new ns.DateFormater();
-
                             firstVal    = formater.getDate(firstVal, this.dateFormat);
                             secondVal   = formater.getDate(secondVal, this.dateFormat);
                             
@@ -615,6 +615,7 @@ NS.UI = (function(ns) {
                                 val = '';
                                 break;
                             }
+                            val = formater.getDate(val, this.dateFormat).toISOString();
                             // Beware of new Date(s), if s is 01/10/2012, it is interpreted as Jan 10, 2012
                             /*parts   = val.split('/');
                             var year = (parts[2].length < 4) ? parseInt(parts[2]) + 2000 : parts[2];
@@ -704,10 +705,10 @@ NS.UI = (function(ns) {
         },
                 
         onDateFilter: function(event) {
-            var form    = $(event.target).closest("form");            
-            var val     = $(event.target).val();            
+            var form    = $(event.target).closest("form");
+            var val     = $(event.target).val();
 
-            if (_.contains(["same", "before", "after", "between"], val)) {                
+            if (_.contains(["same", "before", "after", "between"], val)) {
                 //  show input
                 $(form).find("input[name='val']").show();
                 if (val === "between") {
@@ -717,7 +718,7 @@ NS.UI = (function(ns) {
                     $(form).find("#pBetween").hide();
                     $(form).find(".valBetween").hide();
                     $(form).find(".valBetween").val("");
-                }                
+                }
             } else {
                 //  hide input
                 $(form).find("#pBetween").hide();
