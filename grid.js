@@ -813,11 +813,10 @@ NS.UI = (function(ns) {
                 '                            <% } else if (cell.filter.type == "Date") { %>' +
                 
                 '                               <div class="filterSection dateSection">' +
-                '                                   <label><input type="radio" name="choose" value="today"      /> Today </label>' +
-                '                                   <label><input type="radio" name="choose" value="yesterday"  <% if (cell.filter.selectedOption === "yesterday")  { %> checked="checked" <% } %> /> Yesterday     </label>' +
-                '                                   <label><input type="radio" name="choose" value="lastWeek"   <% if (cell.filter.selectedOption === "lastWeek")   { %> checked="checked" <% } %> /> Last week     </label>' +
-                '                                   <label><input type="radio" name="choose" value="lastMonth"  <% if (cell.filter.selectedOption === "lastMonth")  { %> checked="checked" <% } %> /> Last month    </label>' +
-                '                                   <label><input type="radio" name="choose" value="lastYear"   <% if (cell.filter.selectedOption === "lastYear")   { %> checked="checked" <% } %> /> Last year     </label>' +                
+                '                                   <label><input type="radio" name="choose" value="today"      <% if (cell.filter.selectedOption === "today")      { %> checked="checked" <% } %> /> Today </label>' +
+                '                                   <label><input type="radio" name="choose" value="lastWeek"   <% if (cell.filter.selectedOption === "lastWeek")   { %> checked="checked" <% } %> /> Current week</label>' +
+                '                                   <label><input type="radio" name="choose" value="lastMonth"  <% if (cell.filter.selectedOption === "lastMonth")  { %> checked="checked" <% } %> /> Current month</label>' +
+                '                                   <label><input type="radio" name="choose" value="lastYear"   <% if (cell.filter.selectedOption === "lastYear")   { %> checked="checked" <% } %> /> Current year</label>' +                
                 '                                   <hr />' +                 
                 '                                   <label><input type="radio" name="choose" value="same"       <% if (cell.filter.selectedOption === "same")       { %> checked="checked" <% } %> /> Exact match   </label>' +
                 '                                   <label><input type="radio" name="choose" value="before"     <% if (cell.filter.selectedOption === "before")     { %> checked="checked" <% } %> /> Before        </label>' +                
