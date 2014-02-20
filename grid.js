@@ -566,10 +566,7 @@ NS.UI = (function(ns) {
             $input.toggleClass('error', val != '' && !this._numberRegexp.test(val));
         },
         clearAllFilters: function(e) {
-            var view = this;
-            this.$el.find('thead th form.active').each(function() {
-                view.trigger('unfilter', $(this).data('id'));
-            });
+            this.trigger('unfilter');
         },
         clearFilter: function(e) {
             var $form = $(e.target);

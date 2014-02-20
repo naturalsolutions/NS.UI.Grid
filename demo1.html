@@ -89,7 +89,11 @@
             reloadGrid();
         });
         grid.on('unfilter', function (fieldId) {
-            delete grid.filters[fieldId];
+            if (fieldId !== void 0) {
+                delete grid.filters[fieldId];
+            } else {
+                grid.filters = {};
+            }
             grid.page = 1; // Page count will change, keeping current page will be meaning-less
             reloadGrid();
         });
