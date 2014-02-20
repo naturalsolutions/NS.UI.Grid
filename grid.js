@@ -515,7 +515,8 @@ NS.UI = (function(ns) {
                 pageSizes: this.pageSizes,
                 pageSize: this.pageSize,
                 headerIterator: this.getHeaderIterator(),
-                pager: pagerData
+                pager: pagerData,
+                filtersDisabled: this.disableFilters
             };
         },
         beforeRender: function() {
@@ -541,7 +542,7 @@ NS.UI = (function(ns) {
             this.$el.find('th input[type="date"]').each($.proxy(function(idx, elt) {
                 this.addDatePicker(elt);
             }, this));
-            if (this.$el.find('thead th form.active').length) {
+            if (!this.disableFilters && this.$el.find('thead th form.active').length) {
                 this.$el.find('.clear-filters button').prop('disabled', false);
             }
         },
@@ -790,7 +791,7 @@ NS.UI = (function(ns) {
                 '</select>' +
                 'rows per page' +
                 '</span>' +
-                '<span class="clear-filters"><button class="btn" disabled>Clear all filters</button></span>' +
+                '<% if (!data.filtersDisabled) { %><span class="clear-filters"><button class="btn" disabled>Clear all filters</button></span><% } %>' +
                 '</div>' +
                 '<% } %>' +
                 '<table class="table table-bordered">' +
@@ -872,7 +873,7 @@ NS.UI = (function(ns) {
                 '</select>' +
                 'rows per page' +
                 '</span>' +
-                '<span class="clear-filters"><button class="btn" disabled>Clear all filters</button></span>' +
+                '<% if (!data.filtersDisabled) { %><span class="clear-filters"><button class="btn" disabled>Clear all filters</button></span><% } %>' +
                 '</div>' +
                 '<% } %>' +
                 '</div>'
