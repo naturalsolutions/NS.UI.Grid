@@ -309,6 +309,7 @@ NS.UI = (function(ns) {
             'click .pagination [data-target]': 'onPage',
             'click .sort-action': 'onSort',
             'click .filter-action': 'toggleFilter',
+            'click .clear-filters button': 'clearAllFilters',
             'submit .filter-form form': 'addFilter',
             'input .filter-form input[type="number"]': 'onNumberInput',
             'reset .filter-form form': 'clearFilter',
@@ -540,6 +541,9 @@ NS.UI = (function(ns) {
             this.$el.find('th input[type="date"]').each($.proxy(function(idx, elt) {
                 this.addDatePicker(elt);
             }, this));
+            if (this.$el.find('thead th form.active').length) {
+                this.$el.find('.clear-filters button').prop('disabled', false);
+            }
         },
         addDatePicker: function(element) {
             // Can be overridden by users to activate a custom datepicker on date inputs
@@ -560,6 +564,12 @@ NS.UI = (function(ns) {
             var $input = $(e.target),
                     val = $input.val();
             $input.toggleClass('error', val != '' && !this._numberRegexp.test(val));
+        },
+        clearAllFilters: function(e) {
+            var view = this;
+            this.$el.find('thead th form.active').each(function() {
+                view.trigger('unfilter', $(this).data('id'));
+            });
         },
         clearFilter: function(e) {
             var $form = $(e.target);
@@ -783,6 +793,7 @@ NS.UI = (function(ns) {
                 '</select>' +
                 'rows per page' +
                 '</span>' +
+                '<span class="clear-filters"><button class="btn" disabled>Clear all filters</button></span>' +
                 '</div>' +
                 '<% } %>' +
                 '<table class="table table-bordered">' +
@@ -797,7 +808,7 @@ NS.UI = (function(ns) {
                 '                <% if (cell.sortable) { %><i class="sort-action <%= iconClass %>" data-order="<%= cell.order %>" data-id="<%= cell.id %>" title="Sort"></i><% } %>' +
                 '                <% if (cell.filter) { %> ' +
                 '                    <i class="filter-action icon-filter<%= (cell.filter.val ? " active" : "" ) %>" title="Filter"></i>' +
-                '                    <div class="filter-form"><form data-type="<%= cell.filter.type %>" data-id="<%= cell.id %>">' +
+                '                    <div class="filter-form"><form data-type="<%= cell.filter.type %>" data-id="<%= cell.id %>" class="<%= (cell.filter.val ? "active" : "" ) %>">' +
                 '                        <div>' +
                 '                            <% if (cell.filter.type == "Text") { %>' +
                 
@@ -864,6 +875,7 @@ NS.UI = (function(ns) {
                 '</select>' +
                 'rows per page' +
                 '</span>' +
+                '<span class="clear-filters"><button class="btn" disabled>Clear all filters</button></span>' +
                 '</div>' +
                 '<% } %>' +
                 '</div>'
