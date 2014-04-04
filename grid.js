@@ -378,6 +378,27 @@ NS.UI = (function(ns) {
                             header.sub = this.grid._getSubHeaders(schemas[selected], this.prefix + id + '.');
                         }
                         break;
+                    case 'Select':
+                        if (!this.grid.disableFilters) {
+                            var opts = new Array(),
+                                obj = this.grid.filters[this.prefix + id],
+                                options = field.options();
+                            _.each(options.models, function(el) {
+                                opts.push({
+                                    id: el.get('id'),
+                                    name: el.get('name')
+                                });
+                            });
+                            if (obj === undefined) {
+                                header.filter = {type: field.type, val: undefined, options: opts, selectedOption: undefined};
+                            } else {
+                                if ((typeof obj) == 'string') {
+                                    //  val need to be initialized for add "active" class to filter item
+                                    header.filter = {type: field.type, val: " ", options: opts, selectedOption: obj.split(',')};
+                                }
+                            }
+                        }
+                        break;
                     case 'Text':
                     case 'Boolean':
                     case 'Number':
@@ -580,6 +601,9 @@ NS.UI = (function(ns) {
             var $form = $(e.target),
                     key = $form.data('id');
             switch ($form.data('type')) {
+                case 'Select':
+                    var val = $form.find('input[type="radio"]:checked').val();
+                    break;
                 case 'Text':
                     var val = $form.find('[name="val"]').val();
                     val = $.trim(val);
@@ -842,6 +866,12 @@ NS.UI = (function(ns) {
                 '                            <label class="radio inline"><input type="radio" name="val" value="true"<%= cell.filter.val == "true" ? " checked" : "" %> />True</label>' +
                 '                            <label class="radio inline"><input type="radio" name="val" value="false"<%= cell.filter.val == "false" ? " checked" : "" %> />False</label>' +
                 '                            </div>' +
+                '                            <% } else if(cell.filter.type = "Select") { %>' +
+                '                               <div class="filterSection">' +
+                '                                   <% _.each(cell.filter.options, function(el) {  %>'+
+                '                                       <label style="width : 200px;"><input type="radio" name="select" <% if (_.contains(cell.filter.selectedOption, ""+el["id"])) { %> checked="checked" <% } %> value="<%= el["id"] %>" />&nbsp;<%= el["name"] %></label>'+
+                '                                   <% }); %>'+
+                '                               </div>' +
                 '                            <% } %>' +
                 '                            <br/><button class="btn btn-primary" type="submit">Filter</button>' +
                 '                            <button class="btn" type="reset">Clear</button>' +
